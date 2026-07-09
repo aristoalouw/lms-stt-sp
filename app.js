@@ -39,6 +39,7 @@ const navItems = [
   { id: "announcements", label: "Pengumuman", icon: "megaphone", roles: ["student", "lecturer", "staff", "admin"] },
   { id: "calendar", label: "Kalender Akademik", icon: "calendar-days", roles: ["student", "lecturer", "staff", "admin"] },
   { id: "academic", label: "Data Akademik", icon: "graduation-cap", roles: ["staff", "admin"] },
+  { id: "pdf-settings", label: "PDF KHS", icon: "file-cog", roles: ["admin"] },
 ];
 
 const archivedNavItems = [
@@ -75,6 +76,9 @@ let state = {
   editGradeEntryId: null,
   gradeCohortFilter: "all",
   khsEditMode: false,
+  khsPdfSettings: null,
+  khsPdfSettingsLoading: false,
+  khsPdfSettingsMessage: "",
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -224,6 +228,35 @@ function semesterOptions(selected = CURRENT_ACTIVE_SEMESTER) {
   return historicalSemesters()
     .map((semester) => `<option value="${escapeHtml(semester)}" ${selected === semester ? "selected" : ""}>${escapeHtml(semester)}</option>`)
     .join("");
+}
+
+function colorInputValue(value, fallback = "#000000") {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed;
+    if (/^#[0-9a-f]{3}$/i.test(trimmed)) {
+      return `#${trimmed
+        .slice(1)
+        .split("")
+        .map((char) => char + char)
+        .join("")}`;
+    }
+  }
+  const channels = Array.isArray(value) ? value : value && typeof value === "object" ? [value.r, value.g, value.b] : null;
+  if (channels && channels.every((channel) => Number.isFinite(Number(channel)))) {
+    return `#${channels
+      .map((channel) => {
+        const scaled = Number(channel) <= 1 ? Number(channel) * 255 : Number(channel);
+        return Math.max(0, Math.min(255, Math.round(scaled))).toString(16).padStart(2, "0");
+      })
+      .join("")}`;
+  }
+  return fallback;
+}
+
+function numberInputValue(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
 }
 
 function courseSemesterLevelOptions(selected = "Semester 1") {
@@ -505,6 +538,7 @@ function renderView() {
     academic: renderAcademic,
     integrations: renderIntegrations,
     audit: renderAudit,
+    "pdf-settings": renderKhsPdfSettings,
   };
   content.innerHTML = renderers[state.activeView]();
   renderNav();
@@ -1650,6 +1684,133 @@ function renderUsers() {
   `;
 }
 
+function renderAssetPreview(dataUrl, label) {
+  if (!dataUrl) return `<div class="empty-state">Aset default dari server akan digunakan.</div>`;
+  return `<img class="asset-preview" src="${dataUrl}" alt="${escapeHtml(label)}" />`;
+}
+
+function renderKhsPdfSettings() {
+  const user = currentUser();
+  if (user.role !== "admin") return `<section class="panel"><div class="empty-state">Akses khusus administrator.</div></section>`;
+  if (!state.khsPdfSettings && !state.khsPdfSettingsLoading) loadKhsPdfSettingsForAdmin();
+  if (!state.khsPdfSettings) {
+    return `
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Pengaturan PDF KHS</h3>
+            <p class="muted">Memuat konfigurasi dari server.</p>
+          </div>
+        </div>
+        <div class="empty-state">Mohon tunggu...</div>
+      </section>
+    `;
+  }
+
+  const settings = state.khsPdfSettings;
+  const header = settings.header || {};
+  const signature = settings.signature || {};
+  const assets = settings.assets || {};
+  const message = state.khsPdfSettingsMessage ? `<p class="form-success">${escapeHtml(state.khsPdfSettingsMessage)}</p>` : "";
+
+  return `
+    <form class="pdf-settings-layout" data-form="khs-pdf-settings">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Kop surat KHS</h3>
+            <p class="muted">Konten ini langsung dipakai saat mahasiswa atau staf mencetak KHS.</p>
+          </div>
+          <button class="subtle-button" type="button" data-action="reload-khs-pdf-settings">
+            <i data-lucide="refresh-cw"></i>Muat ulang
+          </button>
+        </div>
+        <div class="form-grid">
+          <label>Nama STT<input name="headerTitle" value="${escapeHtml(header.title || "")}" required /></label>
+          <label>Ukuran font judul<input name="headerTitleFontSize" type="number" min="6" max="30" step="0.5" value="${numberInputValue(header.titleFontSize, 15)}" required /></label>
+          <label>Warna judul<input name="headerTitleColor" type="color" value="${colorInputValue(header.titleColor, "#003b7a")}" /></label>
+          <label>Ukuran font isi<input name="headerBodyFontSize" type="number" min="5" max="20" step="0.5" value="${numberInputValue(header.bodyFontSize, 10)}" required /></label>
+        </div>
+        <label>Isi kop surat<textarea name="headerLines" rows="8" required>${escapeHtml((header.lines || []).join("\n"))}</textarea></label>
+        <div class="form-grid compact-grid">
+          <label>Warna isi<input name="headerBodyColor" type="color" value="${colorInputValue(header.bodyColor, "#47515c")}" /></label>
+          <label>Jarak baris<input name="headerLineGap" type="number" min="6" max="18" step="0.5" value="${numberInputValue(header.lineGap, 9)}" required /></label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Dosen & penandatangan</h3>
+            <p class="muted">Nama, jabatan, dan identitas resmi pada bagian tanda tangan PDF.</p>
+          </div>
+        </div>
+        <div class="form-grid">
+          <label>Nama<input name="signatureName" value="${escapeHtml(signature.name || "")}" required /></label>
+          <label>Jabatan<input name="signatureTitle" value="${escapeHtml(signature.title || "")}" required /></label>
+          <label>Program/Prodi<input name="signatureProgram" value="${escapeHtml(signature.program || "")}" /></label>
+          <label>Lokasi<input name="signatureLocation" value="${escapeHtml(signature.location || "")}" /></label>
+          <label>Label identitas<select name="signatureIdentifierLabel">
+            ${["NUPTK", "NIDN", "NIP"].map((label) => `<option value="${label}" ${signature.identifierLabel === label ? "selected" : ""}>${label}</option>`).join("")}
+          </select></label>
+          <label>Nomor identitas<input name="signatureIdentifier" value="${escapeHtml(signature.identifier || "")}" /></label>
+          <label>Teks tanggal<input name="signatureDatePrefix" value="${escapeHtml(signature.datePrefix || "")}" placeholder="Kosongkan agar memakai tanggal cetak otomatis" /></label>
+          <label>Warna font<input name="signatureColor" type="color" value="${colorInputValue(signature.color, "#000000")}" /></label>
+          <label>Ukuran font data<input name="signatureFontSize" type="number" min="6" max="18" step="0.5" value="${numberInputValue(signature.fontSize, 9.5)}" required /></label>
+          <label>Ukuran font nama<input name="signatureNameFontSize" type="number" min="7" max="20" step="0.5" value="${numberInputValue(signature.nameFontSize, 10)}" required /></label>
+          <label>Ukuran font identitas<input name="signatureIdentifierFontSize" type="number" min="6" max="18" step="0.5" value="${numberInputValue(signature.identifierFontSize, 9.5)}" required /></label>
+        </div>
+      </section>
+
+      <section class="module-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Aset PDF</h3>
+              <p class="muted">Upload PNG/JPG untuk mengganti logo STT dan tanda tangan.</p>
+            </div>
+          </div>
+          <div class="asset-grid">
+            <div class="asset-card">
+              <strong>Logo STT</strong>
+              ${renderAssetPreview(assets.logoDataUrl, "Logo STT")}
+              <label>Ganti logo<input name="logoAsset" type="file" accept="image/png,image/jpeg" /></label>
+              <button class="subtle-button" type="button" data-action="clear-khs-asset" data-asset="logo">
+                <i data-lucide="eraser"></i>Gunakan default
+              </button>
+            </div>
+            <div class="asset-card">
+              <strong>Tanda tangan</strong>
+              ${renderAssetPreview(assets.signatureDataUrl, "Tanda tangan")}
+              <label>Ganti tanda tangan<input name="signatureAsset" type="file" accept="image/png,image/jpeg" /></label>
+              <button class="subtle-button" type="button" data-action="clear-khs-asset" data-asset="signature">
+                <i data-lucide="eraser"></i>Gunakan default
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Simpan konfigurasi</h3>
+              <p class="muted">Setelah disimpan, cetak KHS berikutnya memakai nilai terbaru.</p>
+            </div>
+          </div>
+          ${message}
+          <div class="item-list">
+            <article class="item-card">
+              <div class="item-row"><strong>Status</strong>${statusTag("Aktif")}</div>
+              <p class="muted">Endpoint PDF membaca konfigurasi ini dari database production.</p>
+            </article>
+          </div>
+          <button class="primary-button" type="submit"><i data-lucide="save"></i>Simpan & terapkan</button>
+        </aside>
+      </section>
+    </form>
+  `;
+}
+
 function renderAcademic() {
   const lecturers = data.users.filter((user) => user.role === "lecturer");
   const students = data.users.filter((user) => user.role === "student");
@@ -2061,6 +2222,96 @@ function buildKhsPayloadForCurrentUser() {
   };
 }
 
+async function loadKhsPdfSettingsForAdmin(force = false) {
+  if (state.khsPdfSettingsLoading) return;
+  if (state.khsPdfSettings && !force) return;
+  state.khsPdfSettingsLoading = true;
+  try {
+    const result = await apiRequest("/api/admin/settings");
+    state.khsPdfSettings = result.settings;
+    state.khsPdfSettingsMessage = "";
+  } catch (error) {
+    console.error(error);
+    state.khsPdfSettingsMessage = error.message || "Pengaturan PDF KHS gagal dimuat.";
+  } finally {
+    state.khsPdfSettingsLoading = false;
+    if (state.activeView === "pdf-settings") renderView();
+  }
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("File gagal dibaca."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleKhsPdfSettingsSubmit(formElement) {
+  const submitButton = formElement.querySelector('button[type="submit"]');
+  const originalHtml = submitButton?.innerHTML || "";
+  const form = new FormData(formElement);
+  const assets = { ...(state.khsPdfSettings?.assets || {}) };
+  const logoFile = form.get("logoAsset");
+  const signatureFile = form.get("signatureAsset");
+
+  try {
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Menyimpan...";
+    }
+    if (logoFile?.size) assets.logoDataUrl = await fileToDataUrl(logoFile);
+    if (signatureFile?.size) assets.signatureDataUrl = await fileToDataUrl(signatureFile);
+
+    const payload = {
+      header: {
+        title: form.get("headerTitle"),
+        titleFontSize: Number(form.get("headerTitleFontSize")),
+        titleColor: form.get("headerTitleColor"),
+        bodyFontSize: Number(form.get("headerBodyFontSize")),
+        bodyColor: form.get("headerBodyColor"),
+        lineGap: Number(form.get("headerLineGap")),
+        lines: String(form.get("headerLines") || "")
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean),
+      },
+      signature: {
+        name: form.get("signatureName"),
+        title: form.get("signatureTitle"),
+        program: form.get("signatureProgram"),
+        location: form.get("signatureLocation"),
+        datePrefix: form.get("signatureDatePrefix"),
+        identifierLabel: form.get("signatureIdentifierLabel"),
+        identifier: form.get("signatureIdentifier"),
+        color: form.get("signatureColor"),
+        fontSize: Number(form.get("signatureFontSize")),
+        nameFontSize: Number(form.get("signatureNameFontSize")),
+        identifierFontSize: Number(form.get("signatureIdentifierFontSize")),
+      },
+      assets,
+    };
+
+    const result = await apiRequest("/api/admin/update-settings", { method: "POST", body: JSON.stringify(payload) });
+    state.khsPdfSettings = result.settings;
+    state.khsPdfSettingsMessage = "Pengaturan PDF KHS berhasil disimpan.";
+    addAudit("Mengubah pengaturan PDF KHS");
+    saveData();
+    renderView();
+  } catch (error) {
+    console.error(error);
+    state.khsPdfSettingsMessage = error.message || "Pengaturan PDF KHS gagal disimpan.";
+    renderView();
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.innerHTML = originalHtml;
+      refreshIcons();
+    }
+  }
+}
+
 async function downloadKhsPdf(actionButton) {
   const button = actionButton || document.querySelector('[data-action="print-khs"]');
   const originalHtml = button?.innerHTML || "";
@@ -2169,6 +2420,10 @@ document.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (formName === "letterhead") {
     handleLetterheadUpload(event.target);
+    return;
+  }
+  if (formName === "khs-pdf-settings") {
+    await handleKhsPdfSettingsSubmit(event.target);
     return;
   }
   const form = new FormData(event.target);
@@ -2582,6 +2837,25 @@ function handleAction(action, id, actionButton) {
     });
     saveData();
     renderNotifications();
+    return;
+  }
+
+  if (action === "reload-khs-pdf-settings") {
+    state.khsPdfSettings = null;
+    state.khsPdfSettingsMessage = "";
+    loadKhsPdfSettingsForAdmin(true);
+    renderView();
+    return;
+  }
+
+  if (action === "clear-khs-asset") {
+    const asset = actionButton?.dataset.asset;
+    state.khsPdfSettings ||= {};
+    state.khsPdfSettings.assets ||= {};
+    if (asset === "logo") state.khsPdfSettings.assets.logoDataUrl = "";
+    if (asset === "signature") state.khsPdfSettings.assets.signatureDataUrl = "";
+    state.khsPdfSettingsMessage = "Aset akan memakai file default setelah disimpan.";
+    renderView();
     return;
   }
 

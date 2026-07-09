@@ -246,6 +246,12 @@ button svg {
   font-weight: 700;
 }
 
+.form-success {
+  margin: 0;
+  color: var(--green);
+  font-weight: 750;
+}
+
 .demo-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -464,6 +470,10 @@ button svg {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.compact-grid {
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+}
+
 .metric-card,
 .panel,
 .item-card {
@@ -489,6 +499,11 @@ button svg {
 
 .panel {
   padding: 18px;
+}
+
+.pdf-settings-layout {
+  display: grid;
+  gap: 16px;
 }
 
 .panel-stack {
@@ -708,6 +723,30 @@ button svg {
   width: 24px;
   height: 24px;
   color: var(--teal);
+}
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.asset-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.asset-preview {
+  width: 100%;
+  height: 150px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f8faf9;
 }
 
 .khs-print-identity {
@@ -1018,6 +1057,7 @@ button svg {
   .card-grid,
   .form-grid,
   .demo-grid,
+  .asset-grid,
   .calendar-grid {
     grid-template-columns: 1fr;
   }
