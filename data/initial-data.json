@@ -93,7 +93,7 @@
       "name": "Pengembangan Sistem Informasi",
       "className": "A",
       "credits": 3,
-      "semester": "Ganjil 2026/2027",
+      "semester": "Genap 2025/2026",
       "semesterLevel": "Semester 1",
       "program": "Sistem Informasi",
       "schedule": "Senin, 08.00-10.30",
@@ -115,7 +115,7 @@
       "name": "Pemrograman Berorientasi Objek",
       "className": "B",
       "credits": 4,
-      "semester": "Ganjil 2026/2027",
+      "semester": "Genap 2025/2026",
       "semesterLevel": "Semester 1",
       "program": "Informatika",
       "schedule": "Rabu, 13.00-15.30",
@@ -137,7 +137,7 @@
       "name": "Statistika Bisnis",
       "className": "A",
       "credits": 3,
-      "semester": "Ganjil 2026/2027",
+      "semester": "Genap 2025/2026",
       "semesterLevel": "Semester 2",
       "program": "Sistem Informasi",
       "schedule": "Jumat, 09.00-11.00",
@@ -240,8 +240,8 @@
       "subject": "Pengembangan Sistem Informasi",
       "credits": 3,
       "letter": "A",
-      "grade": 4,
-      "weighted": 12
+      "grade": 3.8,
+      "weighted": 11.4
     },
     {
       "id": "gr-2",

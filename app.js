@@ -1,4 +1,14 @@
-const CURRENT_ACTIVE_SEMESTER = "Ganjil 2026/2027";
+const LEGACY_DEMO_SEMESTERS = new Set(["Ganjil 2026/2027"]);
+
+function academicTermForDate(date = new Date()) {
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  if (month >= 9) return `Ganjil ${year}/${year + 1}`;
+  if (month === 1) return `Ganjil ${year - 1}/${year}`;
+  return `Genap ${year - 1}/${year}`;
+}
+
+const CURRENT_ACTIVE_SEMESTER = academicTermForDate();
 
 const roleNames = {
   student: "Mahasiswa",
@@ -6,6 +16,35 @@ const roleNames = {
   staff: "Staf Akademik",
   admin: "Administrator",
 };
+
+const gradeLetterWeights = {
+  A: 3.8,
+  "A-": 3.7,
+  "B+": 3.3,
+  B: 3.0,
+  "B-": 2.7,
+  "C+": 2.4,
+  C: 2.0,
+  "C-": 1.7,
+  D: 1.3,
+  E: 0.0,
+};
+
+function roundTwo(value) {
+  return Math.round((Number(value) + 1e-9) * 100) / 100;
+}
+
+function gradeWeightFromLetter(letter, directWeight) {
+  const mapped = gradeLetterWeights[String(letter || "").toUpperCase()];
+  if (mapped !== undefined) return mapped;
+  if (directWeight !== undefined && directWeight !== null && directWeight !== "") return Number(directWeight);
+  return 0;
+}
+
+function gradeLetterFromWeight(weight) {
+  const target = Number(weight);
+  return Object.entries(gradeLetterWeights).find(([, value]) => value === target)?.[0] || "E";
+}
 
 const seedData = createEmptyData();
 
@@ -66,7 +105,6 @@ let state = {
   academicTab: "lecturers",
   editAcademicUserId: null,
   editCourseId: null,
-  academicTermFilter: CURRENT_ACTIVE_SEMESTER,
   academicEditMode: {
     lecturers: false,
     students: false,
@@ -103,28 +141,61 @@ async function loadDataFromApi() {
   return data;
 }
 
+function normalizeCourseTerm(term) {
+  const value = String(term || "").trim();
+  if (!value || LEGACY_DEMO_SEMESTERS.has(value)) return CURRENT_ACTIVE_SEMESTER;
+  return value;
+}
+
+function syncActiveCourseRelations(normalized) {
+  const activeCourseIds = new Set(normalized.courses.filter((course) => course.semester === CURRENT_ACTIVE_SEMESTER).map((course) => course.id));
+  const activeStudentIds = new Set(normalized.users.filter((user) => user.role === "student").map((user) => user.id));
+
+  normalized.users
+    .filter((user) => user.role === "student")
+    .forEach((student) => {
+      const enrolled = new Set((student.enrolledCourseIds || []).filter((courseId) => activeCourseIds.has(courseId)));
+      normalized.courses.forEach((course) => {
+        if (course.semester === CURRENT_ACTIVE_SEMESTER && course.studentIds.includes(student.id)) enrolled.add(course.id);
+      });
+      student.enrolledCourseIds = [...enrolled];
+    });
+
+  normalized.courses.forEach((course) => {
+    if (course.semester !== CURRENT_ACTIVE_SEMESTER) return;
+    const related = new Set(course.studentIds.filter((studentId) => activeStudentIds.has(studentId)));
+    normalized.users
+      .filter((user) => user.role === "student" && (user.enrolledCourseIds || []).includes(course.id))
+      .forEach((student) => related.add(student.id));
+    course.studentIds = [...related];
+  });
+}
+
 function normalizeData(source) {
   const normalized = { ...structuredClone(seedData), ...source };
   normalized.users ||= [];
   normalized.courses ||= [];
   normalized.courses = normalized.courses.map((course) => ({
     ...course,
-    semester: course.semester || CURRENT_ACTIVE_SEMESTER,
+    semester: normalizeCourseTerm(course.semester),
     semesterLevel: course.semesterLevel || course.semester_ke || "Semester 1",
+    studentIds: [...new Set(course.studentIds || [])],
+    instructorIds: [...new Set(course.instructorIds || [])],
   }));
   normalized.materials ||= [];
   normalized.assignments ||= [];
   normalized.submissions ||= [];
   normalized.gradeEntries ||= structuredClone(seedData.gradeEntries);
   normalized.gradeEntries = normalized.gradeEntries.map((row, index) => {
-    const grade = Number(row.grade ?? row.bobotAngka ?? 0);
+    const grade = gradeWeightFromLetter(row.letter || row.nilai_huruf, row.grade ?? row.bobotAngka);
+    const credits = Number(row.credits ?? row.sks ?? 0);
     return {
       ...row,
       no: Number(row.no || index + 1),
-      letter: row.letter || row.nilai_huruf || (grade >= 3.85 ? "A" : grade >= 3.65 ? "A-" : "B"),
+      letter: row.letter || row.nilai_huruf || gradeLetterFromWeight(grade),
       grade,
-      weighted: Number(row.weighted ?? row.sks_x_nilai ?? Number(row.credits || row.sks || 0) * grade),
-      credits: Number(row.credits ?? row.sks ?? 0),
+      weighted: roundTwo(credits * grade),
+      credits,
       subject: row.subject || row.mata_kuliah || "",
       code: row.code || row.kode || "",
     };
@@ -148,10 +219,11 @@ function normalizeData(source) {
       ...user,
       program,
       tahun_angkatan: String(tahunAngkatan),
-      currentSemester: user.currentSemester || normalized.courses[0]?.semester || "Ganjil 2026/2027",
-      enrolledCourseIds: user.enrolledCourseIds || [],
+      currentSemester: CURRENT_ACTIVE_SEMESTER,
+      enrolledCourseIds: [...new Set(user.enrolledCourseIds || [])],
     };
   });
+  syncActiveCourseRelations(normalized);
   normalized.notifications = normalized.notifications.filter((item) => ["announcement", "calendar"].includes(item.entityType));
   return normalized;
 }
@@ -269,6 +341,14 @@ function courseFullLabel(course) {
   return `${course.code}-${course.className} ${course.name} (${course.semesterLevel || "Semester 1"}, ${course.semester})`;
 }
 
+function sortedSemesterLevels(groups) {
+  return Object.keys(groups).sort((a, b) => Number(a.replace(/\D/g, "")) - Number(b.replace(/\D/g, "")));
+}
+
+function totalCredits(courses) {
+  return courses.reduce((total, course) => total + Number(course.credits || 0), 0);
+}
+
 function gradeLetterOptions(selected = "A") {
   return Object.keys(gradeLetterWeights)
     .map((letter) => `<option value="${letter}" ${selected === letter ? "selected" : ""}>${letter}</option>`)
@@ -276,13 +356,26 @@ function gradeLetterOptions(selected = "A") {
 }
 
 function courseCheckboxes(name, selectedIds = [], courses = data.courses) {
-  return courses
+  const groups = groupCoursesBySemesterLevel(courses);
+  if (!courses.length) return `<div class="empty-state">Belum ada mata kuliah pada semester aktif.</div>`;
+  return sortedSemesterLevels(groups)
     .map(
-      (course) => `
-      <label class="check-row">
-        <input type="checkbox" name="${name}" value="${course.id}" ${selectedIds.includes(course.id) ? "checked" : ""} />
-        <span>${escapeHtml(courseFullLabel(course))}</span>
-      </label>
+      (semesterLevel) => `
+      <details class="checkbox-group" open>
+        <summary>${escapeHtml(semesterLevel)} <span>${totalCredits(groups[semesterLevel])} SKS</span></summary>
+        <div class="checkbox-list nested-checkbox-list">
+          ${groups[semesterLevel]
+            .map(
+              (course) => `
+              <label class="check-row">
+                <input type="checkbox" name="${name}" value="${course.id}" ${selectedIds.includes(course.id) ? "checked" : ""} />
+                <span>${escapeHtml(`${course.code}-${course.className} ${course.name}`)} <small>${Number(course.credits || 0)} SKS</small></span>
+              </label>
+            `,
+            )
+            .join("")}
+        </div>
+      </details>
     `,
     )
     .join("");
@@ -364,6 +457,23 @@ function studentCheckboxes(name, selectedIds = []) {
 
 function lecturerCourseIds(lecturerId) {
   return data.courses.filter((course) => course.instructorIds.includes(lecturerId)).map((course) => course.id);
+}
+
+function coursesForStudent(studentId) {
+  const student = userById(studentId);
+  if (!student) return [];
+  const enrolled = new Set(student.enrolledCourseIds || []);
+  return data.courses.filter((course) => course.semester === CURRENT_ACTIVE_SEMESTER && (enrolled.has(course.id) || course.studentIds.includes(studentId)));
+}
+
+function courseOptionsForStudent(studentId, selectedCourseId = "") {
+  const courses = coursesForStudent(studentId);
+  const selectedCourse = courseById(selectedCourseId);
+  if (selectedCourse && !courses.some((course) => course.id === selectedCourse.id)) courses.push(selectedCourse);
+  if (!courses.length) return `<option value="">Belum ada mata kuliah yang diambil</option>`;
+  return courses
+    .map((course) => `<option value="${course.id}" ${course.id === selectedCourseId ? "selected" : ""}>${escapeHtml(courseFullLabel(course))}</option>`)
+    .join("");
 }
 
 function renumberGradeEntries(studentId) {
@@ -571,7 +681,7 @@ function renderDashboard() {
     admin: "Kelola pengumuman, kalender akademik, dan informasi umum sistem LMS.",
   };
   const identityText = user.role === "student" ? `NIM ${user.identity}` : user.role === "lecturer" ? `NIDN/NUPTK ${user.identity}` : user.identity;
-  const semesterText = user.role === "student" ? user.currentSemester || "Semester belum diatur" : "Semester Ganjil 2026/2027";
+  const semesterText = user.role === "student" ? user.currentSemester || CURRENT_ACTIVE_SEMESTER : `Semester ${CURRENT_ACTIVE_SEMESTER}`;
 
   return `
     <section class="dashboard-hero">
@@ -1090,21 +1200,6 @@ function formatKhsDecimal(value, useComma = false) {
   return useComma ? formatted.replace(".", ",") : formatted;
 }
 
-const gradeLetterWeights = {
-  A: 4.0,
-  "A-": 3.7,
-  B: 3.0,
-};
-
-function roundTwo(value) {
-  return Math.round((Number(value) + 1e-9) * 100) / 100;
-}
-
-function gradeWeightFromLetter(letter, directWeight) {
-  if (directWeight !== undefined && directWeight !== null && directWeight !== "") return Number(directWeight);
-  return gradeLetterWeights[String(letter).toUpperCase()] ?? 0;
-}
-
 function calculateKhs(courseList) {
   const rows = courseList.map((item, index) => {
     const credits = Number(item.sks ?? item.credits ?? 0);
@@ -1130,6 +1225,11 @@ function gradeRowsForStudent(studentId) {
   return data.gradeEntries
     .filter((row) => row.studentId === studentId)
     .sort((a, b) => Number(a.no) - Number(b.no));
+}
+
+function khsRowsForStudent(studentId) {
+  const courseCodes = new Set(coursesForStudent(studentId).map((course) => course.code));
+  return gradeRowsForStudent(studentId).filter((row) => !courseCodes.size || courseCodes.has(row.code));
 }
 
 function studentGradeOptions(selected = "", cohort = "all") {
@@ -1223,7 +1323,7 @@ function renderGrades() {
   const user = currentUser();
   const courses = accessibleCourses();
   if (user.role === "student") {
-    const rows = gradeRowsForStudent(user.id);
+    const rows = khsRowsForStudent(user.id);
     return `
       <section class="khs-panel">
         <div class="khs-print-identity print-only">
@@ -1233,7 +1333,7 @@ function renderGrades() {
         </div>
         <div class="khs-meta-row">
           <div class="khs-badges" aria-label="Informasi semester">
-            <span class="khs-badge green">2025/2026 Genap</span>
+            <span class="khs-badge green">${escapeHtml(CURRENT_ACTIVE_SEMESTER)}</span>
             <span class="khs-badge blue">${escapeHtml(user.program || "Teologi S1")}</span>
           </div>
           <button class="print-khs-button" type="button" data-action="print-khs">
@@ -1252,14 +1352,14 @@ function renderGrades() {
     const selectedStudentId = gradeStudents.some((student) => student.id === state.gradeStudentId) ? state.gradeStudentId : gradeStudents[0]?.id || "";
     if (state.gradeStudentId !== selectedStudentId) state.gradeStudentId = selectedStudentId;
     const selectedStudent = userById(selectedStudentId);
-    const rows = data.gradeEntries
-      .filter((row) => row.studentId === selectedStudentId)
+    const rows = khsRowsForStudent(selectedStudentId)
       .map((row) => ({ ...row, student: userById(row.studentId) }))
       .sort((a, b) => (a.student?.name || "").localeCompare(b.student?.name || "") || Number(a.no) - Number(b.no));
     const editingGrade = state.editGradeEntryId ? data.gradeEntries.find((row) => row.id === state.editGradeEntryId) : null;
     const formStudentId = editingGrade?.studentId || selectedStudentId;
     const formCourse = editingGrade ? data.courses.find((course) => course.code === editingGrade.code) : null;
-    const formCourseId = formCourse?.id || data.courses[0]?.id || "";
+    const studentCourses = coursesForStudent(formStudentId);
+    const formCourseId = formCourse?.id || studentCourses[0]?.id || "";
     const selectedKhs = calculateKhs(
       rows.map((row) => ({
         no: row.no,
@@ -1307,7 +1407,7 @@ function renderGrades() {
                           <td>${escapeHtml(row.subject)}</td>
                           <td>${Number(row.credits)}</td>
                           <td>${escapeHtml(row.letter || "")}</td>
-                          <td>${formatKhsDecimal(row.weighted)}</td>
+                          <td>${formatKhsDecimal(roundTwo(Number(row.credits || 0) * gradeWeightFromLetter(row.letter, row.grade)))}</td>
                           <td>
                             ${
                               state.khsEditMode
@@ -1355,12 +1455,12 @@ function renderGrades() {
             <label>Mahasiswa<select name="studentId" data-action="grade-student-filter" required ${editingGrade ? "disabled" : ""}>${studentGradeOptions(formStudentId, gradeCohort)}</select></label>
             ${editingGrade ? `<input name="studentId" type="hidden" value="${escapeHtml(formStudentId)}" />` : ""}
             <label>Mata kuliah<select name="courseId" required>
-              ${data.courses.map((course) => `<option value="${course.id}" ${course.id === formCourseId ? "selected" : ""}>${escapeHtml(courseFullLabel(course))}</option>`).join("")}
+              ${courseOptionsForStudent(formStudentId, formCourseId)}
             </select></label>
             <label>Nilai huruf<select name="letter" required>${gradeLetterOptions(editingGrade?.letter || "A")}</select></label>
-            <label>Bobot angka opsional<input name="grade" type="number" min="0" max="4" step="0.01" value="${editingGrade ? Number(editingGrade.grade || 0) : ""}" placeholder="Kosongkan untuk bobot default" /></label>
+            <label>Bobot angka otomatis<input type="text" value="${gradeWeightFromLetter(editingGrade?.letter || "A").toFixed(1)} sesuai nilai huruf" readonly /></label>
             <div class="form-actions">
-              <button class="primary-button" type="submit"><i data-lucide="save"></i>${editingGrade ? "Simpan perubahan" : "Simpan nilai"}</button>
+              <button class="primary-button" type="submit" ${studentCourses.length || editingGrade ? "" : "disabled"}><i data-lucide="save"></i>${editingGrade ? "Simpan perubahan" : "Simpan nilai"}</button>
               ${editingGrade ? `<button class="subtle-button" type="button" data-action="cancel-edit-grade-entry"><i data-lucide="x"></i>Batal</button>` : ""}
             </div>
           </form>
@@ -1811,18 +1911,67 @@ function renderKhsPdfSettings() {
   `;
 }
 
+function renderCourseSemesterPanels(courseGroups) {
+  const semesterLevels = sortedSemesterLevels(courseGroups);
+  if (!semesterLevels.length) return `<div class="empty-state">Belum ada mata kuliah untuk semester aktif ini.</div>`;
+  return `
+    <div class="course-semester-panels">
+      ${semesterLevels
+        .map(
+          (semesterLevel) => `
+          <details class="course-semester-panel" open>
+            <summary>
+              <span>${escapeHtml(semesterLevel)}</span>
+              <strong>${totalCredits(courseGroups[semesterLevel])} SKS</strong>
+            </summary>
+            <table class="data-table">
+              <thead><tr><th>Kode</th><th>Mata Kuliah</th><th>SKS</th><th>Semester Aktif</th><th>Aksi</th></tr></thead>
+              <tbody>
+                ${courseGroups[semesterLevel]
+                  .map(
+                    (course) => `
+                    <tr>
+                      <td>${escapeHtml(course.code)}</td>
+                      <td>${escapeHtml(course.name)}</td>
+                      <td>${Number(course.credits)}</td>
+                      <td>${escapeHtml(course.semester)}</td>
+                      <td>
+                        ${academicActionCell(
+                          "courses",
+                          `
+                            <button class="subtle-button" type="button" data-action="edit-course" data-id="${course.id}">
+                              <i data-lucide="pencil"></i>Edit
+                            </button>
+                            <button class="danger-button" type="button" data-action="delete-course" data-id="${course.id}">
+                              <i data-lucide="trash-2"></i>Hapus
+                            </button>
+                          `,
+                        )}
+                      </td>
+                    </tr>
+                  `,
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </details>
+        `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function renderAcademic() {
   const lecturers = data.users.filter((user) => user.role === "lecturer");
   const students = data.users.filter((user) => user.role === "student");
   const studentGroups = groupStudentsByCohort(students);
   const activeTab = state.academicTab;
-  const academicTerm = state.academicTermFilter || CURRENT_ACTIVE_SEMESTER;
-  const visibleCourses = data.courses.filter((course) => course.semester === academicTerm);
+  const visibleCourses = data.courses.filter((course) => course.semester === CURRENT_ACTIVE_SEMESTER);
   const courseGroups = groupCoursesBySemesterLevel(visibleCourses);
   const editingLecturer = activeTab === "lecturers" ? lecturers.find((lecturer) => lecturer.id === state.editAcademicUserId) : null;
   const editingStudent = activeTab === "students" ? students.find((student) => student.id === state.editAcademicUserId) : null;
   const editingCourse = activeTab === "courses" ? courseById(state.editCourseId) : null;
-  const defaultSemester = academicTerm;
   return `
     <section class="toolbar">
       <div class="filters">
@@ -1838,9 +1987,7 @@ function renderAcademic() {
         <button class="subtle-button ${activeTab === "sync" ? "is-active" : ""}" type="button" data-action="academic-tab" data-tab="sync">
           <i data-lucide="refresh-cw"></i>Sinkronisasi
         </button>
-        <label>Semester Berjalan<select data-action="academic-term-filter" name="academicTerm">
-          ${semesterOptions(academicTerm)}
-        </select></label>
+        <span class="tag green">Semester aktif otomatis: ${escapeHtml(CURRENT_ACTIVE_SEMESTER)}</span>
       </div>
     </section>
 
@@ -1901,7 +2048,7 @@ function renderAcademic() {
             <label>Nama dosen<input name="name" value="${escapeHtml(editingLecturer?.name || "")}" required /></label>
             <div class="field-group">
               <strong>Mata kuliah diampu</strong>
-              <div class="checkbox-list">${courseCheckboxes("courseIds", editingLecturer ? lecturerCourseIds(editingLecturer.id) : [], visibleCourses)}</div>
+              <div class="checkbox-groups">${courseCheckboxes("courseIds", editingLecturer ? lecturerCourseIds(editingLecturer.id) : [], visibleCourses)}</div>
             </div>
             <div class="form-actions">
               <button class="primary-button" type="submit"><i data-lucide="save"></i>${editingLecturer ? "Simpan perubahan" : "Tambah dosen"}</button>
@@ -1981,10 +2128,11 @@ function renderAcademic() {
             <label>Nama mahasiswa<input name="name" value="${escapeHtml(editingStudent?.name || "")}" required /></label>
             <label>Tahun angkatan<input name="tahun_angkatan" type="number" min="2000" max="2099" value="${escapeHtml(editingStudent ? studentCohort(editingStudent) : new Date().getFullYear())}" required /></label>
             <label>Prodi<select name="program" required><option value="Teologi S1" ${(editingStudent?.program || "Teologi S1") === "Teologi S1" ? "selected" : ""}>Teologi S1</option></select></label>
-            <label>Semester berjalan<select name="currentSemester" required>${semesterOptions(editingStudent?.currentSemester || "")}</select></label>
+            <label>Semester aktif<input value="${escapeHtml(CURRENT_ACTIVE_SEMESTER)}" readonly /></label>
+            <input name="currentSemester" type="hidden" value="${escapeHtml(CURRENT_ACTIVE_SEMESTER)}" />
             <div class="field-group">
               <strong>Mata kuliah yang diambil</strong>
-              <div class="checkbox-list">${courseCheckboxes("courseIds", editingStudent?.enrolledCourseIds || [], visibleCourses)}</div>
+              <div class="checkbox-groups">${courseCheckboxes("courseIds", editingStudent?.enrolledCourseIds || [], visibleCourses)}</div>
             </div>
             <div class="form-actions">
               <button class="primary-button" type="submit"><i data-lucide="save"></i>${editingStudent ? "Simpan perubahan" : "Tambah mahasiswa"}</button>
@@ -2008,48 +2156,7 @@ function renderAcademic() {
               </div>
               ${academicEditButton("courses")}
             </div>
-            <table class="data-table">
-              <thead><tr><th>Kode</th><th>Mata Kuliah</th><th>SKS</th><th>Semester Berjalan</th><th>Aksi</th></tr></thead>
-              <tbody>
-                ${
-                  Object.keys(courseGroups).length
-                    ? Object.keys(courseGroups)
-                        .sort((a, b) => Number(a.replace(/\D/g, "")) - Number(b.replace(/\D/g, "")))
-                        .map(
-                          (semesterLevel) => `
-                            <tr class="group-row"><td colspan="5">${escapeHtml(semesterLevel)}</td></tr>
-                            ${courseGroups[semesterLevel]
-                              .map(
-                                (course) => `
-                                <tr>
-                                  <td>${escapeHtml(course.code)}</td>
-                                  <td>${escapeHtml(course.name)}</td>
-                                  <td>${Number(course.credits)}</td>
-                                  <td>${escapeHtml(course.semester)}</td>
-                                  <td>
-                                    ${academicActionCell(
-                                      "courses",
-                                      `
-                                        <button class="subtle-button" type="button" data-action="edit-course" data-id="${course.id}">
-                                          <i data-lucide="pencil"></i>Edit
-                                        </button>
-                                        <button class="danger-button" type="button" data-action="delete-course" data-id="${course.id}">
-                                          <i data-lucide="trash-2"></i>Hapus
-                                        </button>
-                                      `,
-                                    )}
-                                  </td>
-                                </tr>
-                              `,
-                              )
-                              .join("")}
-                          `,
-                        )
-                        .join("")
-                    : `<tr><td colspan="5">Belum ada mata kuliah untuk semester berjalan ini.</td></tr>`
-                }
-              </tbody>
-            </table>
+            ${renderCourseSemesterPanels(courseGroups)}
           </div>
           <form class="panel" data-form="academic-course">
             <div class="panel-header">
@@ -2062,7 +2169,8 @@ function renderAcademic() {
             <label>Mata Kuliah<input name="name" value="${escapeHtml(editingCourse?.name || "")}" required /></label>
             <label>SKS<input name="credits" type="number" min="1" step="1" value="${Number(editingCourse?.credits || 2)}" required /></label>
             <label>Semester<select name="semesterLevel" required>${courseSemesterLevelOptions(editingCourse?.semesterLevel || "Semester 1")}</select></label>
-            <label>Semester berjalan<select name="semester" required>${semesterOptions(editingCourse?.semester || defaultSemester)}</select></label>
+            <label>Semester aktif<input value="${escapeHtml(CURRENT_ACTIVE_SEMESTER)}" readonly /></label>
+            <input name="semester" type="hidden" value="${escapeHtml(CURRENT_ACTIVE_SEMESTER)}" />
             <div class="form-actions">
               <button class="primary-button" type="submit"><i data-lucide="save"></i>${editingCourse ? "Simpan perubahan" : "Tambah mata kuliah"}</button>
               ${editingCourse ? `<button class="subtle-button" type="button" data-action="cancel-edit-course"><i data-lucide="x"></i>Batal</button>` : ""}
@@ -2205,19 +2313,20 @@ function renderSidePanel(title, body) {
 
 function buildKhsPayloadForCurrentUser() {
   const user = currentUser();
-  const rows = gradeRowsForStudent(user.id);
+  const rows = khsRowsForStudent(user.id);
   return {
     mahasiswa: {
       nama: user.name,
       nim: user.identity,
       prodi: user.program || "Teologi S1",
     },
+    semester: CURRENT_ACTIVE_SEMESTER,
     mata_kuliah: rows.map((row) => ({
       kode: row.code,
       nama_mk: row.subject,
       sks: Number(row.credits || 0),
       nilai_huruf: row.letter || "",
-      bobot_angka: Number(row.grade || 0),
+      bobot_angka: gradeWeightFromLetter(row.letter, row.grade),
     })),
   };
 }
@@ -2582,6 +2691,10 @@ function handleForm(formName, form) {
 
   if (formName === "grade-entry") {
     const course = courseById(form.get("courseId"));
+    if (!course) {
+      window.alert("Mahasiswa ini belum memiliki mata kuliah aktif untuk diinput nilainya.");
+      return;
+    }
     const credits = Number(course?.credits || 0);
     const letter = form.get("letter");
     const grade = gradeWeightFromLetter(letter, form.get("grade"));
@@ -2674,7 +2787,7 @@ function handleForm(formName, form) {
       name: form.get("name"),
       className: existing?.className || "A",
       credits: Number(form.get("credits") || 0),
-      semester: form.get("semester") || existing?.semester || data.courses[0]?.semester || "Ganjil 2026/2027",
+      semester: normalizeCourseTerm(form.get("semester") || existing?.semester || CURRENT_ACTIVE_SEMESTER),
       semesterLevel: form.get("semesterLevel") || existing?.semesterLevel || "Semester 1",
       program: existing?.program || "Teologi S1",
       schedule: existing?.schedule || "Belum dijadwalkan",
@@ -2793,12 +2906,6 @@ document.addEventListener("change", (event) => {
     state.gradeStudentId = "";
     state.editGradeEntryId = null;
     state.khsEditMode = false;
-    renderView();
-  }
-  if (event.target.dataset.action === "academic-term-filter") {
-    state.academicTermFilter = event.target.value;
-    state.editAcademicUserId = null;
-    state.editCourseId = null;
     renderView();
   }
 });
@@ -3080,7 +3187,8 @@ function handleAction(action, id, actionButton) {
       name: "Mata Kuliah Baru",
       className: "A",
       credits: 3,
-      semester: "Ganjil 2026/2027",
+      semester: CURRENT_ACTIVE_SEMESTER,
+      semesterLevel: "Semester 1",
       program: "Belum diatur",
       schedule: "Belum dijadwalkan",
       room: "-",

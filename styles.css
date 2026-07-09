@@ -623,6 +623,51 @@ button svg {
   background: #fff;
 }
 
+.checkbox-groups,
+.course-semester-panels {
+  display: grid;
+  gap: 10px;
+}
+
+.checkbox-group,
+.course-semester-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.checkbox-group summary,
+.course-semester-panel summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  color: var(--teal-dark);
+  background: #eef6f3;
+  font-weight: 800;
+}
+
+.checkbox-group summary span,
+.course-semester-panel summary strong {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.nested-checkbox-list {
+  max-height: none;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.check-row small {
+  color: var(--muted);
+  font-weight: 650;
+}
+
 .check-row {
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr);
