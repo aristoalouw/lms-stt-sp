@@ -149,6 +149,11 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function requireStaffOrAdmin(req, res, next) {
+  if (!["staff", "admin"].includes(req.user?.role)) return res.status(403).json({ message: "Hanya staf atau admin yang dapat mengakses data ini." });
+  next();
+}
+
 function withoutUsers(payload) {
   const copy = stripSensitive(payload || {});
   delete copy.users;
@@ -434,6 +439,23 @@ app.post("/api/admin/update-settings", requireDatabase, requireAuth, requireAdmi
   });
 });
 
+app.get("/api/admin/khs-form-responses.pdf", requireDatabase, requireAuth, requireStaffOrAdmin, async (req, res) => {
+  try {
+    const appData = await loadAppData();
+    const pdfBuffer = await renderKhsFormResponsesPdf(appData, {
+      semester: String(req.query.semester || CURRENT_ACTIVE_SEMESTER),
+      cohort: String(req.query.cohort || "all"),
+      studentId: String(req.query.studentId || "all"),
+    });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "attachment; filename=jawaban-form-khs.pdf");
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Gagal export jawaban form KHS:", error);
+    res.status(500).json({ message: "Gagal export jawaban form KHS.", detail: error.message });
+  }
+});
+
 function roundTwo(value) {
   return Math.round((Number(value) + 1e-9) * 100) / 100;
 }
@@ -492,6 +514,23 @@ function khsPrintStatus(appData, studentId, semester = CURRENT_ACTIVE_SEMESTER) 
   };
 }
 
+function inferCohortFromIdentity(identity) {
+  const value = String(identity || "");
+  const fullYear = value.match(/20\d{2}/)?.[0];
+  if (fullYear) return fullYear;
+  const shortYear = value.match(/^\d{2}/)?.[0];
+  return shortYear ? `20${shortYear}` : String(new Date().getFullYear());
+}
+
+function studentCohort(student) {
+  return String(student?.tahun_angkatan || inferCohortFromIdentity(student?.identity));
+}
+
+function formatAnswerValue(value) {
+  if (Array.isArray(value)) return value.join(", ");
+  return String(value ?? "-");
+}
+
 function drawText(page, text, x, y, font, size = 9, options = {}) {
   page.drawText(String(text ?? ""), {
     x,
@@ -502,6 +541,97 @@ function drawText(page, text, x, y, font, size = 9, options = {}) {
     maxWidth: options.maxWidth,
     lineHeight: options.lineHeight,
   });
+}
+
+function drawWrappedText(pdfDoc, pageRef, text, x, yRef, font, size, maxWidth, options = {}) {
+  let page = pageRef.page;
+  let y = yRef.value;
+  const words = String(text ?? "").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+  words.forEach((word) => {
+    const next = line ? `${line} ${word}` : word;
+    if (font.widthOfTextAtSize(next, size) <= maxWidth) line = next;
+    else {
+      if (line) lines.push(line);
+      line = word;
+    }
+  });
+  if (line) lines.push(line);
+  if (!lines.length) lines.push("-");
+  lines.forEach((item) => {
+    if (y < 54) {
+      page = pdfDoc.addPage([595.28, 841.89]);
+      pageRef.page = page;
+      y = 790;
+    }
+    drawText(page, item, x, y, font, size, options);
+    y -= size + 5;
+  });
+  yRef.value = y;
+}
+
+async function renderKhsFormResponsesPdf(appData, filters = {}) {
+  const semester = filters.semester || CURRENT_ACTIVE_SEMESTER;
+  const cohort = filters.cohort || "all";
+  const studentId = filters.studentId || "all";
+  const forms = (appData.khsForms || []).filter((form) => form.semester === semester);
+  const students = (appData.users || [])
+    .filter((user) => user.role === "student")
+    .filter((student) => cohort === "all" || studentCohort(student) === String(cohort))
+    .filter((student) => studentId === "all" || student.id === studentId)
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const pageRef = { page: pdfDoc.addPage([595.28, 841.89]) };
+  const yRef = { value: 790 };
+  const marginX = 44;
+  const contentWidth = 507;
+
+  drawText(pageRef.page, "Laporan Jawaban Form KHS", marginX, yRef.value, boldFont, 16);
+  yRef.value -= 22;
+  drawText(pageRef.page, `Semester: ${semester}`, marginX, yRef.value, font, 10);
+  yRef.value -= 14;
+  drawText(pageRef.page, `Filter: ${cohort === "all" ? "Semua angkatan" : `Angkatan ${cohort}`} / ${studentId === "all" ? "Semua mahasiswa" : "Perorangan"}`, marginX, yRef.value, font, 10);
+  yRef.value -= 26;
+
+  if (!students.length) {
+    drawText(pageRef.page, "Tidak ada mahasiswa sesuai filter.", marginX, yRef.value, font, 10);
+    return Buffer.from(await pdfDoc.save());
+  }
+
+  students.forEach((student) => {
+    if (yRef.value < 120) {
+      pageRef.page = pdfDoc.addPage([595.28, 841.89]);
+      yRef.value = 790;
+    }
+    drawText(pageRef.page, `${student.name || "-"} (${student.identity || "-"})`, marginX, yRef.value, boldFont, 12);
+    yRef.value -= 15;
+    drawText(pageRef.page, `Angkatan ${studentCohort(student)} - ${student.program || "Teologi S1"}`, marginX, yRef.value, font, 9);
+    yRef.value -= 16;
+
+    forms.forEach((form) => {
+      const submission = (appData.khsFormSubmissions || []).find((item) => item.formId === form.id && item.studentId === student.id && item.semester === semester);
+      drawText(pageRef.page, `${form.title}: ${submission ? "Sudah isi" : "Belum isi"}`, marginX + 12, yRef.value, boldFont, 10);
+      yRef.value -= 14;
+      if (submission) {
+        (form.questions || []).forEach((question) => {
+          drawWrappedText(pdfDoc, pageRef, `${question.label}:`, marginX + 24, yRef, boldFont, 9, contentWidth - 24);
+          drawWrappedText(pdfDoc, pageRef, formatAnswerValue(submission.answers?.[question.id]), marginX + 36, yRef, font, 9, contentWidth - 36);
+          yRef.value -= 3;
+        });
+        drawText(pageRef.page, `Dikirim: ${new Date(submission.submittedAt || submission.updatedAt || Date.now()).toLocaleString("id-ID")}`, marginX + 24, yRef.value, font, 8);
+        yRef.value -= 14;
+      } else {
+        yRef.value -= 4;
+      }
+    });
+    yRef.value -= 12;
+  });
+
+  return Buffer.from(await pdfDoc.save());
 }
 
 function formatDecimal(value) {

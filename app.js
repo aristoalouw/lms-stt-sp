@@ -159,6 +159,9 @@ let state = {
   khsPdfSettingsMessage: "",
   khsFormTab: "settings",
   editKhsFormId: null,
+  khsFormBuilderOpen: false,
+  khsFormMasterEditMode: false,
+  khsQuestionEditorCount: 6,
   khsFormCohortFilter: "all",
   khsFormStudentFilter: "all",
 };
@@ -1544,6 +1547,7 @@ function renderGrades() {
   if (user.role === "student") {
     const rows = khsRowsForStudent(user.id);
     const printStatus = khsPrintStatus(user.id);
+    if (!printStatus.unlocked) return renderStudentKhsFormGate(user);
     return `
       ${renderStudentKhsFormGate(user)}
       <section class="khs-panel">
@@ -2187,9 +2191,9 @@ function renderCourseSemesterPanels(courseGroups) {
 
 function renderKhsQuestionEditorRows(form = null) {
   const questions = [...(form?.questions || [])];
-  while (questions.length < 5) questions.push({ id: "", label: "", type: "text", required: true, options: [] });
+  const targetCount = Math.max(state.khsQuestionEditorCount || 6, questions.length + 1);
+  while (questions.length < targetCount) questions.push({ id: "", label: "", type: "text", required: true, options: [] });
   return questions
-    .slice(0, 5)
     .map(
       (question, index) => `
       <div class="question-editor">
@@ -2215,6 +2219,8 @@ function renderKhsFormsAdmin() {
   const activeTab = state.khsFormTab || "settings";
   const forms = data.khsForms.filter((form) => form.semester === CURRENT_ACTIVE_SEMESTER);
   const editing = state.editKhsFormId ? data.khsForms.find((form) => form.id === state.editKhsFormId) : null;
+  const showBuilder = state.khsFormBuilderOpen || Boolean(editing);
+  const masterEdit = Boolean(state.khsFormMasterEditMode);
   const students = data.users.filter((item) => item.role === "student" && (state.khsFormCohortFilter === "all" || studentCohort(item) === String(state.khsFormCohortFilter)));
   const selectedStudentId = state.khsFormStudentFilter === "all" ? "all" : state.khsFormStudentFilter;
   const visibleStudents = selectedStudentId === "all" ? students : students.filter((student) => student.id === selectedStudentId);
@@ -2245,6 +2251,12 @@ function renderKhsFormsAdmin() {
                 <h3>Form wajib cetak KHS</h3>
                 <p class="muted">Mahasiswa harus mengisi form aktif dan wajib sebelum dapat mencetak KHS.</p>
               </div>
+              <div class="form-actions">
+                <button class="primary-button" type="button" data-action="new-khs-form"><i data-lucide="plus"></i>Tambah Form</button>
+                <button class="subtle-button ${masterEdit ? "is-active" : ""}" type="button" data-action="toggle-khs-form-master-edit">
+                  <i data-lucide="${masterEdit ? "check" : "pencil"}"></i>${masterEdit ? "Selesai Edit" : "Edit Master"}
+                </button>
+              </div>
             </div>
             <div class="item-list">
               ${forms
@@ -2263,23 +2275,32 @@ function renderKhsFormsAdmin() {
                       <span>${form.requiredForPrint !== false ? "Wajib cetak" : "Tidak wajib"}</span>
                       <span>${escapeHtml(form.semester)}</span>
                     </div>
-                    <div class="form-actions">
-                      <button class="subtle-button" type="button" data-action="edit-khs-form" data-id="${form.id}"><i data-lucide="pencil"></i>Edit</button>
-                      <button class="danger-button" type="button" data-action="delete-khs-form" data-id="${form.id}"><i data-lucide="trash-2"></i>Hapus</button>
-                    </div>
+                    ${
+                      masterEdit
+                        ? `
+                        <div class="form-actions">
+                          <button class="subtle-button" type="button" data-action="edit-khs-form" data-id="${form.id}"><i data-lucide="pencil"></i>Edit</button>
+                          <button class="danger-button" type="button" data-action="delete-khs-form" data-id="${form.id}"><i data-lucide="trash-2"></i>Hapus</button>
+                        </div>
+                      `
+                        : ""
+                    }
                   </article>
                 `,
                 )
                 .join("")}
             </div>
           </div>
+          ${
+            showBuilder
+              ? `
           <form class="panel" data-form="khs-form-config">
             <div class="panel-header">
               <div>
                 <h3>${editing ? "Edit form" : "Tambah form"}</h3>
                 <p class="muted">Gunakan minimal dua form aktif untuk membuka akses cetak KHS.</p>
               </div>
-              ${editing ? `<button class="subtle-button" type="button" data-action="cancel-edit-khs-form"><i data-lucide="x"></i>Batal</button>` : ""}
+              <button class="subtle-button" type="button" data-action="cancel-edit-khs-form"><i data-lucide="x"></i>Tutup</button>
             </div>
             <input name="id" type="hidden" value="${escapeHtml(editing?.id || "")}" />
             <label>Judul form<input name="title" value="${escapeHtml(editing?.title || "")}" required /></label>
@@ -2291,9 +2312,17 @@ function renderKhsFormsAdmin() {
             <div class="field-group">
               <strong>Pertanyaan</strong>
               <div class="question-editor-list">${renderKhsQuestionEditorRows(editing)}</div>
+              <button class="subtle-button" type="button" data-action="add-khs-question"><i data-lucide="plus"></i>Tambah Pertanyaan</button>
             </div>
             <button class="primary-button" type="submit"><i data-lucide="save"></i>Simpan form</button>
           </form>
+          `
+              : `
+          <aside class="panel">
+            <div class="empty-state">Klik Tambah Form untuk membuat form baru, atau aktifkan Edit Master untuk mengubah form yang sudah ada.</div>
+          </aside>
+          `
+          }
         </section>
       `
         : ""
@@ -2314,6 +2343,7 @@ function renderKhsFormsAdmin() {
                 <option value="all" ${selectedStudentId === "all" ? "selected" : ""}>Semua mahasiswa</option>
                 ${students.map((student) => `<option value="${student.id}" ${selectedStudentId === student.id ? "selected" : ""}>${escapeHtml(student.name)} - ${escapeHtml(student.identity)}</option>`).join("")}
               </select></label>
+              <button class="primary-button" type="button" data-action="export-khs-form-responses"><i data-lucide="file-down"></i>Export PDF</button>
             </div>
           </div>
           <div class="item-list">
@@ -2326,7 +2356,7 @@ function renderKhsFormsAdmin() {
                       <div class="item-row">
                         <div>
                           <strong>${escapeHtml(student.name)} - ${escapeHtml(form.title)}</strong>
-                          <p class="muted">${escapeHtml(student.identity)} · Angkatan ${escapeHtml(studentCohort(student))}</p>
+                          <p class="muted">${escapeHtml(student.identity)} - Angkatan ${escapeHtml(studentCohort(student))}</p>
                         </div>
                         ${submission ? statusTag("Sudah isi") : statusTag("Belum isi")}
                       </div>
@@ -2861,6 +2891,49 @@ async function handleKhsPdfSettingsSubmit(formElement) {
   }
 }
 
+async function downloadKhsFormResponsesPdf(actionButton) {
+  const originalHtml = actionButton?.innerHTML || "";
+  try {
+    if (actionButton) {
+      actionButton.disabled = true;
+      actionButton.textContent = "Membuat PDF...";
+    }
+    const params = new URLSearchParams({
+      semester: CURRENT_ACTIVE_SEMESTER,
+      cohort: state.khsFormCohortFilter || "all",
+      studentId: state.khsFormStudentFilter || "all",
+    });
+    const response = await fetch(`/api/admin/khs-form-responses.pdf?${params.toString()}`, {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(async () => ({ message: await response.text() }));
+      throw new Error(errorPayload.message || `Export PDF gagal. Status ${response.status}`);
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `jawaban-form-khs-${CURRENT_ACTIVE_SEMESTER.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    addAudit("Export jawaban form KHS PDF");
+    saveData();
+  } catch (error) {
+    console.error(error);
+    window.alert(error.message || "Export PDF gagal.");
+  } finally {
+    if (actionButton) {
+      actionButton.disabled = false;
+      actionButton.innerHTML = originalHtml;
+      refreshIcons();
+    }
+  }
+}
+
 async function downloadKhsPdf(actionButton) {
   const button = actionButton || document.querySelector('[data-action="print-khs"]');
   const originalHtml = button?.innerHTML || "";
@@ -3047,6 +3120,8 @@ function handleForm(formName, form) {
     if (existing) Object.assign(existing, payload);
     else data.khsForms.push(payload);
     state.editKhsFormId = null;
+    state.khsFormBuilderOpen = false;
+    state.khsQuestionEditorCount = 6;
     addAudit(`${existing ? "Mengedit" : "Menambah"} form KHS ${payload.title}`);
   }
 
@@ -3477,19 +3552,54 @@ function handleAction(action, id, actionButton) {
   if (action === "khs-form-tab") {
     state.khsFormTab = actionButton?.dataset.tab || "settings";
     state.editKhsFormId = null;
+    state.khsFormBuilderOpen = false;
     renderView();
+    return;
+  }
+
+  if (action === "new-khs-form") {
+    state.editKhsFormId = null;
+    state.khsFormBuilderOpen = true;
+    state.khsQuestionEditorCount = 6;
+    renderView();
+    return;
+  }
+
+  if (action === "toggle-khs-form-master-edit") {
+    state.khsFormMasterEditMode = !state.khsFormMasterEditMode;
+    if (!state.khsFormMasterEditMode) {
+      state.editKhsFormId = null;
+      state.khsFormBuilderOpen = false;
+    }
+    renderView();
+    return;
+  }
+
+  if (action === "add-khs-question") {
+    state.khsQuestionEditorCount = Number(state.khsQuestionEditorCount || 6) + 1;
+    renderView();
+    return;
+  }
+
+  if (action === "export-khs-form-responses") {
+    downloadKhsFormResponsesPdf(actionButton);
     return;
   }
 
   if (action === "edit-khs-form") {
     state.editKhsFormId = id;
     state.khsFormTab = "settings";
+    state.khsFormBuilderOpen = true;
+    const target = data.khsForms.find((form) => form.id === id);
+    state.khsQuestionEditorCount = Math.max(6, (target?.questions?.length || 0) + 1);
     renderView();
     return;
   }
 
   if (action === "cancel-edit-khs-form") {
     state.editKhsFormId = null;
+    state.khsFormBuilderOpen = false;
+    state.khsQuestionEditorCount = 6;
     renderView();
     return;
   }
