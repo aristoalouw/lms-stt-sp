@@ -20,6 +20,16 @@ const SESSION_COOKIE = "lms_session";
 const SESSION_SECRET = process.env.SESSION_SECRET || "replace-this-session-secret";
 const isProduction = process.env.NODE_ENV === "production";
 
+function academicTermForDate(date = new Date()) {
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  if (month >= 9) return `Ganjil ${year}/${year + 1}`;
+  if (month === 1) return `Ganjil ${year - 1}/${year}`;
+  return `Genap ${year - 1}/${year}`;
+}
+
+const CURRENT_ACTIVE_SEMESTER = academicTermForDate();
+
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || true,
@@ -469,6 +479,19 @@ function assertPayload(payload) {
   if (!Array.isArray(payload.mata_kuliah)) throw new Error("Data mata_kuliah wajib berupa array.");
 }
 
+function khsPrintStatus(appData, studentId, semester = CURRENT_ACTIVE_SEMESTER) {
+  const requiredForms = (appData.khsForms || []).filter((form) => form.active !== false && form.requiredForPrint !== false && form.semester === semester);
+  const completedFormIds = requiredForms
+    .filter((form) => (appData.khsFormSubmissions || []).some((submission) => submission.formId === form.id && submission.studentId === studentId && submission.semester === semester))
+    .map((form) => form.id);
+  return {
+    requiredForms,
+    completedFormIds,
+    missingForms: requiredForms.filter((form) => !completedFormIds.includes(form.id)),
+    unlocked: requiredForms.length > 0 && completedFormIds.length === requiredForms.length,
+  };
+}
+
 function drawText(page, text, x, y, font, size = 9, options = {}) {
   page.drawText(String(text ?? ""), {
     x,
@@ -741,6 +764,19 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
 
 app.post("/api/cetak-khs", requireDatabase, requireAuth, async (req, res) => {
   try {
+    if (req.user?.role === "student") {
+      const appData = await loadAppData();
+      const semester = req.body?.semester || CURRENT_ACTIVE_SEMESTER;
+      const status = khsPrintStatus(appData, req.user.id, semester);
+      if (!status.unlocked) {
+        return res.status(403).json({
+          message: "Cetak KHS terkunci. Lengkapi semua form wajib terlebih dahulu.",
+          required: status.requiredForms.length,
+          completed: status.completedFormIds.length,
+          missingForms: status.missingForms.map((form) => ({ id: form.id, title: form.title })),
+        });
+      }
+    }
     const pdfBuffer = await renderKhsPdf(req.body, await loadKhsPdfSettings());
     const nim = safeFilename(req.body?.mahasiswa?.nim);
     res.setHeader("Content-Type", "application/pdf");

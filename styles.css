@@ -518,6 +518,32 @@ button svg {
   align-items: center;
 }
 
+.compact-toolbar {
+  margin: 0 0 14px;
+}
+
+.khs-required-form,
+.question-editor-list,
+.choice-list {
+  display: grid;
+  gap: 10px;
+}
+
+.question-editor {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(130px, 0.5fr) minmax(180px, 0.9fr) minmax(130px, 0.45fr);
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.inline-check {
+  align-self: center;
+}
+
 .panel-header {
   display: flex;
   align-items: center;
@@ -1101,6 +1127,7 @@ button svg {
   .metric-grid,
   .card-grid,
   .form-grid,
+  .question-editor,
   .demo-grid,
   .asset-grid,
   .calendar-grid {

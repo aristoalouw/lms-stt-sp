@@ -10,6 +10,39 @@ function academicTermForDate(date = new Date()) {
 
 const CURRENT_ACTIVE_SEMESTER = academicTermForDate();
 
+function defaultKhsForms() {
+  return [
+    {
+      id: "khs-form-evaluasi",
+      title: "Evaluasi Pembelajaran",
+      description: "Form evaluasi singkat sebelum mahasiswa mencetak KHS.",
+      semester: CURRENT_ACTIVE_SEMESTER,
+      requiredForPrint: true,
+      active: true,
+      questions: [
+        { id: "q-kepuasan", label: "Bagaimana penilaian Anda terhadap proses pembelajaran semester ini?", type: "select", required: true, options: ["Sangat Baik", "Baik", "Cukup", "Perlu Perbaikan"] },
+        { id: "q-masukan", label: "Tuliskan masukan untuk peningkatan pembelajaran.", type: "textarea", required: true, options: [] },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: "khs-form-konfirmasi",
+      title: "Konfirmasi Data Akademik",
+      description: "Form konfirmasi bahwa data mahasiswa dan mata kuliah sudah diperiksa.",
+      semester: CURRENT_ACTIVE_SEMESTER,
+      requiredForPrint: true,
+      active: true,
+      questions: [
+        { id: "q-data", label: "Saya menyatakan data akademik yang tampil sudah saya periksa.", type: "checkbox", required: true, options: ["Ya, saya setuju"] },
+        { id: "q-catatan", label: "Catatan koreksi jika ada.", type: "textarea", required: false, options: [] },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ];
+}
+
 const roleNames = {
   student: "Mahasiswa",
   lecturer: "Dosen",
@@ -67,6 +100,8 @@ function createEmptyData() {
     notifications: [],
     audit: [],
     integrations: [],
+    khsForms: defaultKhsForms(),
+    khsFormSubmissions: [],
     settings: {
       letterheadDataUrl: "",
       letterheadName: "",
@@ -81,6 +116,7 @@ const navItems = [
   { id: "announcements", label: "Pengumuman", icon: "megaphone", roles: ["student", "lecturer", "staff", "admin"] },
   { id: "calendar", label: "Kalender Akademik", icon: "calendar-days", roles: ["student", "lecturer", "staff", "admin"] },
   { id: "academic", label: "Data Akademik", icon: "graduation-cap", roles: ["staff", "admin"] },
+  { id: "khs-forms", label: "Form KHS", icon: "clipboard-check", roles: ["staff", "admin"] },
   { id: "pdf-settings", label: "PDF KHS", icon: "file-cog", roles: ["admin"] },
 ];
 
@@ -121,6 +157,10 @@ let state = {
   khsPdfSettings: null,
   khsPdfSettingsLoading: false,
   khsPdfSettingsMessage: "",
+  khsFormTab: "settings",
+  editKhsFormId: null,
+  khsFormCohortFilter: "all",
+  khsFormStudentFilter: "all",
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -214,6 +254,27 @@ function normalizeData(source) {
   normalized.notifications ||= [];
   normalized.audit ||= [];
   normalized.integrations ||= [];
+  const defaultForms = defaultKhsForms();
+  normalized.khsForms = [...(normalized.khsForms || []), ...defaultForms]
+    .filter((form, index, forms) => form?.id && forms.findIndex((item) => item.id === form.id) === index)
+    .map((form) => ({
+      ...form,
+      semester: form.semester || CURRENT_ACTIVE_SEMESTER,
+      requiredForPrint: form.requiredForPrint !== false,
+      active: form.active !== false,
+      questions: (form.questions || []).map((question, index) => ({
+        id: question.id || `q-${Date.now()}-${index}`,
+        label: question.label || "Pertanyaan",
+        type: question.type || "text",
+        required: question.required !== false,
+        options: Array.isArray(question.options) ? question.options : [],
+      })),
+    }));
+  normalized.khsFormSubmissions = (normalized.khsFormSubmissions || []).map((submission) => ({
+    ...submission,
+    semester: submission.semester || CURRENT_ACTIVE_SEMESTER,
+    answers: submission.answers || {},
+  }));
   normalized.users = normalized.users.map((user) => {
     if (user.role !== "student") return user;
     const program = user.program === "Teologi S1" ? user.program : "Teologi S1";
@@ -544,9 +605,9 @@ function assignmentStatus(assignment, user = currentUser()) {
 function statusTag(status) {
   const normalized = String(status).toLowerCase();
   let tone = "blue";
-  if (["hadir", "dinilai", "berhasil", "tersinkron", "published", "aktif", "active"].includes(normalized)) tone = "green";
-  if (["terlambat", "izin", "scheduled", "butuh validasi", "draft"].includes(normalized)) tone = "amber";
-  if (["alpha", "nonaktif", "gagal"].includes(normalized)) tone = "red";
+  if (["hadir", "dinilai", "berhasil", "tersinkron", "published", "aktif", "active", "terbuka", "selesai", "sudah isi"].includes(normalized)) tone = "green";
+  if (["terlambat", "izin", "scheduled", "butuh validasi", "draft", "sebagian", "wajib"].includes(normalized)) tone = "amber";
+  if (["alpha", "nonaktif", "gagal", "terkunci", "belum isi"].includes(normalized)) tone = "red";
   return `<span class="tag ${tone}">${escapeHtml(status)}</span>`;
 }
 
@@ -650,6 +711,7 @@ function renderView() {
     reports: renderReports,
     users: renderUsers,
     academic: renderAcademic,
+    "khs-forms": renderKhsFormsAdmin,
     integrations: renderIntegrations,
     audit: renderAudit,
     "pdf-settings": renderKhsPdfSettings,
@@ -1259,6 +1321,86 @@ function studentGradeOptions(selected = "", cohort = "all") {
     .join("");
 }
 
+function activeRequiredKhsForms() {
+  return data.khsForms.filter((form) => form.active !== false && form.requiredForPrint !== false && form.semester === CURRENT_ACTIVE_SEMESTER);
+}
+
+function khsSubmissionFor(formId, studentId) {
+  return data.khsFormSubmissions.find((submission) => submission.formId === formId && submission.studentId === studentId && submission.semester === CURRENT_ACTIVE_SEMESTER);
+}
+
+function khsPrintStatus(studentId) {
+  const requiredForms = activeRequiredKhsForms();
+  const completedFormIds = requiredForms.filter((form) => khsSubmissionFor(form.id, studentId)).map((form) => form.id);
+  return {
+    requiredForms,
+    completedFormIds,
+    missingForms: requiredForms.filter((form) => !completedFormIds.includes(form.id)),
+    unlocked: requiredForms.length > 0 && completedFormIds.length === requiredForms.length,
+  };
+}
+
+function formatAnswerValue(value) {
+  if (Array.isArray(value)) return value.join(", ");
+  return String(value ?? "-");
+}
+
+function renderKhsQuestionField(question, answer = "") {
+  const name = `answer_${question.id}`;
+  const required = question.required ? "required" : "";
+  const value = Array.isArray(answer) ? answer : String(answer ?? "");
+  if (question.type === "textarea") {
+    return `<label>${escapeHtml(question.label)}<textarea name="${name}" ${required}>${escapeHtml(value)}</textarea></label>`;
+  }
+  if (question.type === "select") {
+    return `<label>${escapeHtml(question.label)}<select name="${name}" ${required}>
+      <option value="">Pilih jawaban</option>
+      ${(question.options || []).map((option) => `<option value="${escapeHtml(option)}" ${value === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+    </select></label>`;
+  }
+  if (question.type === "radio") {
+    return `
+      <div class="field-group">
+        <strong>${escapeHtml(question.label)}</strong>
+        <div class="choice-list">
+          ${(question.options || [])
+            .map(
+              (option) => `
+              <label class="check-row">
+                <input type="radio" name="${name}" value="${escapeHtml(option)}" ${value === option ? "checked" : ""} ${required} />
+                <span>${escapeHtml(option)}</span>
+              </label>
+            `,
+            )
+            .join("")}
+        </div>
+      </div>
+    `;
+  }
+  if (question.type === "checkbox") {
+    const selected = new Set(Array.isArray(answer) ? answer : value ? [value] : []);
+    return `
+      <div class="field-group">
+        <strong>${escapeHtml(question.label)}</strong>
+        <div class="choice-list">
+          ${(question.options || ["Ya"])
+            .map(
+              (option) => `
+              <label class="check-row">
+                <input type="checkbox" name="${name}" value="${escapeHtml(option)}" ${selected.has(option) ? "checked" : ""} />
+                <span>${escapeHtml(option)}</span>
+              </label>
+            `,
+            )
+            .join("")}
+        </div>
+      </div>
+    `;
+  }
+  const type = question.type === "date" ? "date" : "text";
+  return `<label>${escapeHtml(question.label)}<input name="${name}" type="${type}" value="${escapeHtml(value)}" ${required} /></label>`;
+}
+
 function renderKhsTable(rows) {
   const result = calculateKhs(
     rows.map((row) => ({
@@ -1336,12 +1478,74 @@ function renderKhsTable(rows) {
   `;
 }
 
+function renderStudentKhsFormGate(user) {
+  const status = khsPrintStatus(user.id);
+  if (!status.requiredForms.length) {
+    return `<section class="panel"><div class="empty-state">Belum ada form syarat cetak KHS aktif.</div></section>`;
+  }
+  if (status.unlocked) {
+    return `
+      <section class="panel">
+        <div class="item-row">
+          <div>
+            <h3>Syarat cetak KHS lengkap</h3>
+            <p class="muted">Semua form wajib semester ${escapeHtml(CURRENT_ACTIVE_SEMESTER)} sudah diisi.</p>
+          </div>
+          ${statusTag("Terbuka")}
+        </div>
+      </section>
+    `;
+  }
+  return `
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h3>Lengkapi syarat cetak KHS</h3>
+          <p class="muted">Isi ${status.missingForms.length} form yang masih kurang agar tombol cetak KHS terbuka.</p>
+        </div>
+        ${statusTag("Terkunci")}
+      </div>
+      <div class="item-list">
+        ${status.requiredForms
+          .map((form) => {
+            const submission = khsSubmissionFor(form.id, user.id);
+            return `
+              <article class="item-card">
+                <div class="item-row">
+                  <div>
+                    <strong>${escapeHtml(form.title)}</strong>
+                    <p class="muted">${escapeHtml(form.description || "")}</p>
+                  </div>
+                  ${submission ? statusTag("Selesai") : statusTag("Wajib")}
+                </div>
+                ${
+                  submission
+                    ? `<p class="muted">Dikirim ${formatDateTime(submission.submittedAt || submission.updatedAt || new Date().toISOString())}</p>`
+                    : `
+                    <form class="khs-required-form" data-form="khs-form-submission" data-form-id="${form.id}">
+                      <input name="formId" type="hidden" value="${form.id}" />
+                      ${form.questions.map((question) => renderKhsQuestionField(question)).join("")}
+                      <button class="primary-button" type="submit"><i data-lucide="send"></i>Kirim form</button>
+                    </form>
+                  `
+                }
+              </article>
+            `;
+          })
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderGrades() {
   const user = currentUser();
   const courses = accessibleCourses();
   if (user.role === "student") {
     const rows = khsRowsForStudent(user.id);
+    const printStatus = khsPrintStatus(user.id);
     return `
+      ${renderStudentKhsFormGate(user)}
       <section class="khs-panel">
         <div class="khs-print-identity print-only">
           <strong>Nama: ${escapeHtml(user.name)}</strong>
@@ -1353,9 +1557,9 @@ function renderGrades() {
             <span class="khs-badge green">${escapeHtml(CURRENT_ACTIVE_SEMESTER)}</span>
             <span class="khs-badge blue">${escapeHtml(user.program || "Teologi S1")}</span>
           </div>
-          <button class="print-khs-button" type="button" data-action="print-khs">
+          <button class="print-khs-button" type="button" data-action="print-khs" ${printStatus.unlocked ? "" : "disabled"}>
             <i data-lucide="printer"></i>
-            Cetak KHS
+            ${printStatus.unlocked ? "Cetak KHS" : "Cetak KHS terkunci"}
           </button>
         </div>
         ${renderKhsTable(rows)}
@@ -1981,6 +2185,214 @@ function renderCourseSemesterPanels(courseGroups) {
   `;
 }
 
+function renderKhsQuestionEditorRows(form = null) {
+  const questions = [...(form?.questions || [])];
+  while (questions.length < 5) questions.push({ id: "", label: "", type: "text", required: true, options: [] });
+  return questions
+    .slice(0, 5)
+    .map(
+      (question, index) => `
+      <div class="question-editor">
+        <input name="questionId" type="hidden" value="${escapeHtml(question.id || "")}" />
+        <label>Pertanyaan ${index + 1}<input name="questionLabel" value="${escapeHtml(question.label || "")}" placeholder="Kosongkan jika tidak dipakai" /></label>
+        <label>Tipe<select name="questionType">
+          ${["text", "textarea", "select", "radio", "checkbox", "date"].map((type) => `<option value="${type}" ${question.type === type ? "selected" : ""}>${type}</option>`).join("")}
+        </select></label>
+        <label>Opsi<input name="questionOptions" value="${escapeHtml((question.options || []).join(", "))}" placeholder="Pisahkan dengan koma untuk select/radio/checkbox" /></label>
+        <label class="check-row inline-check">
+          <input type="checkbox" name="questionRequired_${index}" ${question.required !== false ? "checked" : ""} />
+          <span>Wajib diisi</span>
+        </label>
+      </div>
+    `,
+    )
+    .join("");
+}
+
+function renderKhsFormsAdmin() {
+  const user = currentUser();
+  if (!["staff", "admin"].includes(user.role)) return `<section class="panel"><div class="empty-state">Akses khusus staf dan admin.</div></section>`;
+  const activeTab = state.khsFormTab || "settings";
+  const forms = data.khsForms.filter((form) => form.semester === CURRENT_ACTIVE_SEMESTER);
+  const editing = state.editKhsFormId ? data.khsForms.find((form) => form.id === state.editKhsFormId) : null;
+  const students = data.users.filter((item) => item.role === "student" && (state.khsFormCohortFilter === "all" || studentCohort(item) === String(state.khsFormCohortFilter)));
+  const selectedStudentId = state.khsFormStudentFilter === "all" ? "all" : state.khsFormStudentFilter;
+  const visibleStudents = selectedStudentId === "all" ? students : students.filter((student) => student.id === selectedStudentId);
+
+  return `
+    <section class="toolbar">
+      <div class="filters">
+        <button class="subtle-button ${activeTab === "settings" ? "is-active" : ""}" type="button" data-action="khs-form-tab" data-tab="settings">
+          <i data-lucide="settings"></i>Pengaturan Form
+        </button>
+        <button class="subtle-button ${activeTab === "responses" ? "is-active" : ""}" type="button" data-action="khs-form-tab" data-tab="responses">
+          <i data-lucide="list-checks"></i>Jawaban Mahasiswa
+        </button>
+        <button class="subtle-button ${activeTab === "status" ? "is-active" : ""}" type="button" data-action="khs-form-tab" data-tab="status">
+          <i data-lucide="lock-keyhole"></i>Status Cetak
+        </button>
+        <span class="tag green">${escapeHtml(CURRENT_ACTIVE_SEMESTER)}</span>
+      </div>
+    </section>
+
+    ${
+      activeTab === "settings"
+        ? `
+        <section class="module-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Form wajib cetak KHS</h3>
+                <p class="muted">Mahasiswa harus mengisi form aktif dan wajib sebelum dapat mencetak KHS.</p>
+              </div>
+            </div>
+            <div class="item-list">
+              ${forms
+                .map(
+                  (form) => `
+                  <article class="item-card">
+                    <div class="item-row">
+                      <div>
+                        <strong>${escapeHtml(form.title)}</strong>
+                        <p class="muted">${escapeHtml(form.description || "")}</p>
+                      </div>
+                      ${statusTag(form.active !== false ? "Aktif" : "Nonaktif")}
+                    </div>
+                    <div class="item-meta">
+                      <span>${form.questions.length} pertanyaan</span>
+                      <span>${form.requiredForPrint !== false ? "Wajib cetak" : "Tidak wajib"}</span>
+                      <span>${escapeHtml(form.semester)}</span>
+                    </div>
+                    <div class="form-actions">
+                      <button class="subtle-button" type="button" data-action="edit-khs-form" data-id="${form.id}"><i data-lucide="pencil"></i>Edit</button>
+                      <button class="danger-button" type="button" data-action="delete-khs-form" data-id="${form.id}"><i data-lucide="trash-2"></i>Hapus</button>
+                    </div>
+                  </article>
+                `,
+                )
+                .join("")}
+            </div>
+          </div>
+          <form class="panel" data-form="khs-form-config">
+            <div class="panel-header">
+              <div>
+                <h3>${editing ? "Edit form" : "Tambah form"}</h3>
+                <p class="muted">Gunakan minimal dua form aktif untuk membuka akses cetak KHS.</p>
+              </div>
+              ${editing ? `<button class="subtle-button" type="button" data-action="cancel-edit-khs-form"><i data-lucide="x"></i>Batal</button>` : ""}
+            </div>
+            <input name="id" type="hidden" value="${escapeHtml(editing?.id || "")}" />
+            <label>Judul form<input name="title" value="${escapeHtml(editing?.title || "")}" required /></label>
+            <label>Deskripsi<textarea name="description" required>${escapeHtml(editing?.description || "")}</textarea></label>
+            <div class="form-grid compact-grid">
+              <label class="check-row inline-check"><input type="checkbox" name="active" ${editing?.active === false ? "" : "checked"} /><span>Aktif</span></label>
+              <label class="check-row inline-check"><input type="checkbox" name="requiredForPrint" ${editing?.requiredForPrint === false ? "" : "checked"} /><span>Wajib untuk cetak</span></label>
+            </div>
+            <div class="field-group">
+              <strong>Pertanyaan</strong>
+              <div class="question-editor-list">${renderKhsQuestionEditorRows(editing)}</div>
+            </div>
+            <button class="primary-button" type="submit"><i data-lucide="save"></i>Simpan form</button>
+          </form>
+        </section>
+      `
+        : ""
+    }
+
+    ${
+      activeTab === "responses"
+        ? `
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Jawaban mahasiswa</h3>
+              <p class="muted">Lihat isi form yang sudah dikirim oleh masing-masing mahasiswa.</p>
+            </div>
+            <div class="filters">
+              <label>Angkatan<select data-action="khs-form-cohort-filter">${cohortOptions(state.khsFormCohortFilter)}</select></label>
+              <label>Mahasiswa<select data-action="khs-form-student-filter">
+                <option value="all" ${selectedStudentId === "all" ? "selected" : ""}>Semua mahasiswa</option>
+                ${students.map((student) => `<option value="${student.id}" ${selectedStudentId === student.id ? "selected" : ""}>${escapeHtml(student.name)} - ${escapeHtml(student.identity)}</option>`).join("")}
+              </select></label>
+            </div>
+          </div>
+          <div class="item-list">
+            ${visibleStudents
+              .flatMap((student) =>
+                forms.map((form) => {
+                  const submission = khsSubmissionFor(form.id, student.id);
+                  return `
+                    <article class="item-card">
+                      <div class="item-row">
+                        <div>
+                          <strong>${escapeHtml(student.name)} - ${escapeHtml(form.title)}</strong>
+                          <p class="muted">${escapeHtml(student.identity)} · Angkatan ${escapeHtml(studentCohort(student))}</p>
+                        </div>
+                        ${submission ? statusTag("Sudah isi") : statusTag("Belum isi")}
+                      </div>
+                      ${
+                        submission
+                          ? `
+                          <table class="data-table">
+                            <tbody>
+                              ${form.questions
+                                .map((question) => `<tr><th>${escapeHtml(question.label)}</th><td>${escapeHtml(formatAnswerValue(submission.answers?.[question.id]))}</td></tr>`)
+                                .join("")}
+                            </tbody>
+                          </table>
+                          <p class="muted">Dikirim ${formatDateTime(submission.submittedAt || submission.updatedAt)}</p>
+                        `
+                          : `<p class="muted">Mahasiswa belum mengirim form ini.</p>`
+                      }
+                    </article>
+                  `;
+                }),
+              )
+              .join("")}
+          </div>
+        </section>
+      `
+        : ""
+    }
+
+    ${
+      activeTab === "status"
+        ? `
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Status cetak KHS</h3>
+              <p class="muted">Status dihitung real-time dari form wajib aktif semester ini.</p>
+            </div>
+            <div class="filters">
+              <label>Angkatan<select data-action="khs-form-cohort-filter">${cohortOptions(state.khsFormCohortFilter)}</select></label>
+            </div>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>Mahasiswa</th><th>Angkatan</th><th>Form selesai</th><th>Status</th></tr></thead>
+            <tbody>
+              ${students
+                .map((student) => {
+                  const status = khsPrintStatus(student.id);
+                  return `
+                    <tr>
+                      <td>${escapeHtml(student.name)}<br /><span class="muted">${escapeHtml(student.identity)}</span></td>
+                      <td>${escapeHtml(studentCohort(student))}</td>
+                      <td>${status.completedFormIds.length}/${status.requiredForms.length}</td>
+                      <td>${status.unlocked ? statusTag("Terbuka") : status.completedFormIds.length ? statusTag("Sebagian") : statusTag("Terkunci")}</td>
+                    </tr>
+                  `;
+                })
+                .join("")}
+            </tbody>
+          </table>
+        </section>
+      `
+        : ""
+    }
+  `;
+}
+
 function renderAcademic() {
   const lecturers = data.users.filter((user) => user.role === "lecturer");
   const students = data.users.filter((user) => user.role === "student");
@@ -2455,6 +2867,9 @@ async function downloadKhsPdf(actionButton) {
   const user = currentUser();
 
   try {
+    if (user.role === "student" && !khsPrintStatus(user.id).unlocked) {
+      throw new Error("Cetak KHS terkunci. Lengkapi semua form wajib terlebih dahulu.");
+    }
     if (button) {
       button.disabled = true;
       button.textContent = "Membuat PDF...";
@@ -2564,7 +2979,8 @@ document.addEventListener("submit", async (event) => {
     return;
   }
   const form = new FormData(event.target);
-  handleForm(formName, form);
+  const handled = handleForm(formName, form);
+  if (handled === false) return;
   event.target.reset();
   saveData();
   renderNotifications();
@@ -2593,6 +3009,81 @@ function handleLetterheadUpload(formElement) {
 
 function handleForm(formName, form) {
   const user = currentUser();
+  if (formName === "khs-form-config") {
+    const now = new Date().toISOString();
+    const ids = form.getAll("questionId");
+    const labels = form.getAll("questionLabel");
+    const types = form.getAll("questionType");
+    const options = form.getAll("questionOptions");
+    const questions = labels
+      .map((label, index) => ({
+        id: ids[index] || `q-${Date.now()}-${index}`,
+        label: String(label || "").trim(),
+        type: types[index] || "text",
+        required: form.has(`questionRequired_${index}`),
+        options: String(options[index] || "")
+          .split(",")
+          .map((option) => option.trim())
+          .filter(Boolean),
+      }))
+      .filter((question) => question.label);
+    if (!questions.length) {
+      window.alert("Minimal satu pertanyaan harus diisi.");
+      return false;
+    }
+    const formId = form.get("id") || `khs-form-${Date.now()}`;
+    const payload = {
+      id: formId,
+      title: form.get("title"),
+      description: form.get("description"),
+      semester: CURRENT_ACTIVE_SEMESTER,
+      requiredForPrint: form.has("requiredForPrint"),
+      active: form.has("active"),
+      questions,
+      createdAt: data.khsForms.find((item) => item.id === formId)?.createdAt || now,
+      updatedAt: now,
+    };
+    const existing = data.khsForms.find((item) => item.id === formId);
+    if (existing) Object.assign(existing, payload);
+    else data.khsForms.push(payload);
+    state.editKhsFormId = null;
+    addAudit(`${existing ? "Mengedit" : "Menambah"} form KHS ${payload.title}`);
+  }
+
+  if (formName === "khs-form-submission") {
+    const formId = form.get("formId");
+    const targetForm = data.khsForms.find((item) => item.id === formId);
+    if (!targetForm) return;
+    const answers = {};
+    targetForm.questions.forEach((question) => {
+      const key = `answer_${question.id}`;
+      answers[question.id] = question.type === "checkbox" ? form.getAll(key) : form.get(key);
+    });
+    const missing = targetForm.questions.find((question) => {
+      if (!question.required) return false;
+      const value = answers[question.id];
+      return Array.isArray(value) ? value.length === 0 : !String(value || "").trim();
+    });
+    if (missing) {
+      window.alert(`Pertanyaan wajib belum diisi: ${missing.label}`);
+      return false;
+    }
+    const now = new Date().toISOString();
+    const existing = khsSubmissionFor(formId, user.id);
+    const payload = {
+      id: existing?.id || `khs-sub-${Date.now()}`,
+      formId,
+      studentId: user.id,
+      semester: CURRENT_ACTIVE_SEMESTER,
+      answers,
+      submittedAt: existing?.submittedAt || now,
+      updatedAt: now,
+    };
+    if (existing) Object.assign(existing, payload);
+    else data.khsFormSubmissions.push(payload);
+    addAudit(`Mengisi form KHS ${targetForm.title}`);
+  }
+
   if (formName === "material") {
     const material = {
       id: `m-${Date.now()}`,
@@ -2888,6 +3379,7 @@ document.addEventListener("click", (event) => {
     state.editAcademicUserId = null;
     state.editCourseId = null;
     state.editGradeEntryId = null;
+    state.editKhsFormId = null;
     state.khsEditMode = false;
     document.body.classList.remove("nav-open");
     renderView();
@@ -2947,6 +3439,15 @@ document.addEventListener("change", (event) => {
     state.editAcademicUserId = null;
     renderView();
   }
+  if (event.target.dataset.action === "khs-form-cohort-filter") {
+    state.khsFormCohortFilter = event.target.value;
+    state.khsFormStudentFilter = "all";
+    renderView();
+  }
+  if (event.target.dataset.action === "khs-form-student-filter") {
+    state.khsFormStudentFilter = event.target.value;
+    renderView();
+  }
 });
 
 document.addEventListener("input", (event) => {
@@ -2971,6 +3472,34 @@ function handleAction(action, id, actionButton) {
     state.editCourseId = null;
     renderView();
     return;
+  }
+
+  if (action === "khs-form-tab") {
+    state.khsFormTab = actionButton?.dataset.tab || "settings";
+    state.editKhsFormId = null;
+    renderView();
+    return;
+  }
+
+  if (action === "edit-khs-form") {
+    state.editKhsFormId = id;
+    state.khsFormTab = "settings";
+    renderView();
+    return;
+  }
+
+  if (action === "cancel-edit-khs-form") {
+    state.editKhsFormId = null;
+    renderView();
+    return;
+  }
+
+  if (action === "delete-khs-form") {
+    const target = data.khsForms.find((form) => form.id === id);
+    data.khsForms = data.khsForms.filter((form) => form.id !== id);
+    data.khsFormSubmissions = data.khsFormSubmissions.filter((submission) => submission.formId !== id);
+    if (state.editKhsFormId === id) state.editKhsFormId = null;
+    addAudit(`Menghapus form KHS ${target?.title || id}`);
   }
 
   if (action === "toggle-academic-edit-mode") {

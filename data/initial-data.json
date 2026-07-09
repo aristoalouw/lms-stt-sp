@@ -468,5 +468,60 @@
       "lastSync": "2026-07-01 14:30",
       "status": "Butuh validasi"
     }
-  ]
+  ],
+  "khsForms": [
+    {
+      "id": "khs-form-evaluasi",
+      "title": "Evaluasi Pembelajaran",
+      "description": "Form evaluasi singkat sebelum mahasiswa mencetak KHS.",
+      "semester": "Genap 2025/2026",
+      "requiredForPrint": true,
+      "active": true,
+      "questions": [
+        {
+          "id": "q-kepuasan",
+          "label": "Bagaimana penilaian Anda terhadap proses pembelajaran semester ini?",
+          "type": "select",
+          "required": true,
+          "options": ["Sangat Baik", "Baik", "Cukup", "Perlu Perbaikan"]
+        },
+        {
+          "id": "q-masukan",
+          "label": "Tuliskan masukan untuk peningkatan pembelajaran.",
+          "type": "textarea",
+          "required": true,
+          "options": []
+        }
+      ],
+      "createdAt": "2026-07-10T00:00:00.000Z",
+      "updatedAt": "2026-07-10T00:00:00.000Z"
+    },
+    {
+      "id": "khs-form-konfirmasi",
+      "title": "Konfirmasi Data Akademik",
+      "description": "Form konfirmasi bahwa data mahasiswa dan mata kuliah sudah diperiksa.",
+      "semester": "Genap 2025/2026",
+      "requiredForPrint": true,
+      "active": true,
+      "questions": [
+        {
+          "id": "q-data",
+          "label": "Saya menyatakan data akademik yang tampil sudah saya periksa.",
+          "type": "checkbox",
+          "required": true,
+          "options": ["Ya, saya setuju"]
+        },
+        {
+          "id": "q-catatan",
+          "label": "Catatan koreksi jika ada.",
+          "type": "textarea",
+          "required": false,
+          "options": []
+        }
+      ],
+      "createdAt": "2026-07-10T00:00:00.000Z",
+      "updatedAt": "2026-07-10T00:00:00.000Z"
+    }
+  ],
+  "khsFormSubmissions": []
 }
