@@ -1,6 +1,6 @@
 # LMS STT SP
 
-Aplikasi LMS berbasis Node/Express dengan frontend statis, autentikasi backend, session cookie `httpOnly`, dan penyimpanan data di MongoDB.
+Aplikasi LMS berbasis Node/Express dengan frontend statis, autentikasi backend, session cookie `httpOnly`, dan penyimpanan data backend. Database dapat memakai MySQL Hostinger cPanel atau MongoDB Atlas.
 
 ## Menjalankan Lokal
 
@@ -13,7 +13,10 @@ npm install
 2. Buat file `.env` dari `.env.example`, lalu isi minimal:
 
 ```text
-MONGO_URI=mongodb+srv://...
+MYSQL_HOST=localhost
+MYSQL_DATABASE=nama_database
+MYSQL_USER=user_database
+MYSQL_PASSWORD=password_database
 SESSION_SECRET=isi-random-panjang
 INITIAL_ADMIN_PASSWORD=password-admin-awal
 INITIAL_USER_PASSWORD=password-user-awal
@@ -47,7 +50,10 @@ Environment variables wajib:
 
 ```text
 NODE_ENV=production
-MONGO_URI=...
+MYSQL_HOST=localhost
+MYSQL_DATABASE=...
+MYSQL_USER=...
+MYSQL_PASSWORD=...
 SESSION_SECRET=...
 INITIAL_ADMIN_PASSWORD=...
 INITIAL_USER_PASSWORD=...
@@ -71,4 +77,4 @@ Segera ubah password dan data akun lewat menu admin setelah login pertama.
 - KHS, pengumuman, kalender akademik, dan data akademik.
 - Admin/staf dapat mengelola dosen, mahasiswa, mata kuliah, nilai, pengumuman, dan kalender akademik.
 - Endpoint `POST /api/cetak-khs` membuat PDF KHS server-side dengan Express dan `pdf-lib`.
-- Data aplikasi disimpan di MongoDB, bukan `localStorage`.
+- Data aplikasi disimpan di database backend, bukan `localStorage`.

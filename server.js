@@ -6,13 +6,15 @@ const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
+const mysql = require("mysql2/promise");
 const path = require("path");
 const { readFile } = require("fs/promises");
 const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
 const initialData = require("./data/initial-data.json");
 
 const app = express();
-const PORT = Number(process.env.PORT || 3000);
+const rawPort = process.env.PORT || 3000;
+const PORT = Number(rawPort) || rawPort;
 const ROOT_DIR = __dirname;
 const SESSION_COOKIE = "lms_session";
 const SESSION_SECRET = process.env.SESSION_SECRET || "replace-this-session-secret";
@@ -44,6 +46,11 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+const database = {
+  driver: null,
+  mysqlPool: null,
+};
+
 const userSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true, index: true },
@@ -65,8 +72,8 @@ const appDataSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-const User = mongoose.model("User", userSchema);
-const AppData = mongoose.model("AppData", appDataSchema);
+const MongoUser = mongoose.model("User", userSchema);
+const MongoAppData = mongoose.model("AppData", appDataSchema);
 
 function stripSensitive(value) {
   if (Array.isArray(value)) return value.map(stripSensitive);
@@ -80,6 +87,16 @@ function stripSensitive(value) {
 
 function sanitizeUser(user) {
   return stripSensitive(typeof user.toObject === "function" ? user.toObject() : user);
+}
+
+function parseJson(value, fallback = {}) {
+  if (!value) return fallback;
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
 }
 
 function getCookieOptions() {
@@ -100,7 +117,7 @@ async function requireAuth(req, res, next) {
     const token = req.cookies?.[SESSION_COOKIE];
     if (!token) return res.status(401).json({ message: "Sesi login tidak ditemukan." });
     const payload = jwt.verify(token, SESSION_SECRET);
-    const user = await User.findOne({ id: payload.sub, status: "active" });
+    const user = await findUserById(payload.sub);
     if (!user) return res.status(401).json({ message: "Sesi login tidak valid." });
     req.user = user;
     next();
@@ -111,8 +128,8 @@ async function requireAuth(req, res, next) {
 }
 
 async function requireDatabase(req, res, next) {
-  if (mongoose.connection.readyState !== 1) {
-    return res.status(503).json({ message: "Database belum terhubung. Periksa MONGO_URI di environment hosting." });
+  if (!isDatabaseReady()) {
+    return res.status(503).json({ message: "Database belum terhubung. Periksa DATABASE_URL/MYSQL_* atau MONGO_URI di environment hosting." });
   }
   next();
 }
@@ -124,9 +141,9 @@ function withoutUsers(payload) {
 }
 
 async function loadAppData() {
-  const [record, users] = await Promise.all([AppData.findOne({ key: "main" }), User.find({}).sort({ role: 1, name: 1 })]);
+  const [record, users] = await Promise.all([loadStoredAppData(), findAllUsers()]);
   return {
-    ...(record?.data || withoutUsers(initialData)),
+    ...(record || withoutUsers(initialData)),
     users: users.map(sanitizeUser),
   };
 }
@@ -139,52 +156,216 @@ async function syncUsers(incomingUsers = []) {
     const password = String(incoming.password || "");
     const update = stripSensitive(incoming);
     if (password) update.passwordHash = await bcrypt.hash(password, 12);
-    const existing = await User.findOne({ id: incoming.id });
+    const existing = await findUserById(incoming.id);
+    if (!password && existing?.passwordHash) update.passwordHash = existing.passwordHash;
     if (!existing && !update.passwordHash) {
       update.passwordHash = await bcrypt.hash(process.env.INITIAL_USER_PASSWORD || "ChangeMe123!", 12);
     }
-    await User.findOneAndUpdate({ id: incoming.id }, update, { upsert: true, new: true, setDefaultsOnInsert: true });
+    await upsertUser(update);
   }
-  if (ids.length) await User.deleteMany({ id: { $nin: ids } });
+  if (ids.length) await deleteUsersNotIn(ids);
 }
 
 async function ensureInitialData() {
-  const userCount = await User.countDocuments();
+  const userCount = await countUsers();
   if (userCount === 0) {
     const defaultUserPassword = process.env.INITIAL_USER_PASSWORD || "ChangeMe123!";
     const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || defaultUserPassword;
     for (const user of initialData.users || []) {
       const password = user.role === "admin" ? adminPassword : defaultUserPassword;
-      await User.create({
+      await upsertUser({
         ...stripSensitive(user),
         passwordHash: await bcrypt.hash(password, 12),
       });
     }
   }
 
-  await AppData.findOneAndUpdate(
-    { key: "main" },
-    { $setOnInsert: { key: "main", data: withoutUsers(initialData) } },
-    { upsert: true, new: true },
-  );
+  if (!(await loadStoredAppData())) await saveStoredAppData(withoutUsers(initialData));
 }
 
 async function connectDatabase() {
-  if (!process.env.MONGO_URI) {
-    console.warn("MONGO_URI belum diatur. API auth/data akan mengembalikan 503 sampai database dikonfigurasi.");
+  if (process.env.DATABASE_URL || process.env.MYSQL_HOST || process.env.MYSQL_DATABASE) {
+    database.driver = "mysql";
+    database.mysqlPool = process.env.DATABASE_URL
+      ? mysql.createPool(process.env.DATABASE_URL)
+      : mysql.createPool({
+          host: process.env.MYSQL_HOST || "localhost",
+          port: Number(process.env.MYSQL_PORT || 3306),
+          user: process.env.MYSQL_USER,
+          password: process.env.MYSQL_PASSWORD,
+          database: process.env.MYSQL_DATABASE,
+          waitForConnections: true,
+          connectionLimit: 10,
+        });
+    await ensureMysqlSchema();
+    await ensureInitialData();
     return;
   }
-  await mongoose.connect(process.env.MONGO_URI);
-  await ensureInitialData();
+
+  if (process.env.MONGO_URI) {
+    database.driver = "mongo";
+    await mongoose.connect(process.env.MONGO_URI);
+    await ensureInitialData();
+    return;
+  }
+
+  console.warn("Database belum diatur. Isi DATABASE_URL/MYSQL_* untuk Hostinger cPanel atau MONGO_URI untuk MongoDB.");
+}
+
+function isDatabaseReady() {
+  if (database.driver === "mysql") return Boolean(database.mysqlPool);
+  if (database.driver === "mongo") return mongoose.connection.readyState === 1;
+  return false;
+}
+
+async function ensureMysqlSchema() {
+  await database.mysqlPool.execute(`
+    CREATE TABLE IF NOT EXISTS lms_users (
+      id VARCHAR(191) NOT NULL PRIMARY KEY,
+      username VARCHAR(191) NOT NULL UNIQUE,
+      email VARCHAR(255) NULL,
+      identity_value VARCHAR(191) NULL,
+      role VARCHAR(50) NOT NULL,
+      status VARCHAR(50) NOT NULL DEFAULT 'active',
+      password_hash VARCHAR(255) NOT NULL,
+      data LONGTEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_lms_users_email (email),
+      INDEX idx_lms_users_identity (identity_value)
+    )
+  `);
+
+  await database.mysqlPool.execute(`
+    CREATE TABLE IF NOT EXISTS lms_app_data (
+      data_key VARCHAR(191) NOT NULL PRIMARY KEY,
+      data LONGTEXT NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+}
+
+function mysqlUserFromRow(row) {
+  if (!row) return null;
+  return {
+    ...parseJson(row.data, {}),
+    id: row.id,
+    username: row.username,
+    email: row.email,
+    identity: row.identity_value,
+    role: row.role,
+    status: row.status,
+    passwordHash: row.password_hash,
+  };
+}
+
+async function countUsers() {
+  if (database.driver === "mysql") {
+    const [rows] = await database.mysqlPool.execute("SELECT COUNT(*) AS total FROM lms_users");
+    return Number(rows[0]?.total || 0);
+  }
+  return MongoUser.countDocuments();
+}
+
+async function findAllUsers() {
+  if (database.driver === "mysql") {
+    const [rows] = await database.mysqlPool.execute("SELECT * FROM lms_users ORDER BY role, JSON_UNQUOTE(JSON_EXTRACT(data, '$.name'))");
+    return rows.map(mysqlUserFromRow);
+  }
+  return MongoUser.find({}).sort({ role: 1, name: 1 });
+}
+
+async function findUserById(id) {
+  if (database.driver === "mysql") {
+    const [rows] = await database.mysqlPool.execute("SELECT * FROM lms_users WHERE id = ? AND status = 'active' LIMIT 1", [id]);
+    return mysqlUserFromRow(rows[0]);
+  }
+  return MongoUser.findOne({ id, status: "active" });
+}
+
+async function findUserForLogin(identifier) {
+  if (database.driver === "mysql") {
+    const [rows] = await database.mysqlPool.execute(
+      "SELECT * FROM lms_users WHERE status = 'active' AND (LOWER(username) = ? OR LOWER(email) = ? OR LOWER(identity_value) = ?) LIMIT 1",
+      [identifier, identifier, identifier],
+    );
+    return mysqlUserFromRow(rows[0]);
+  }
+  return MongoUser.findOne({
+    status: "active",
+    $or: [{ username: identifier }, { email: identifier }, { identity: identifier }],
+  });
+}
+
+async function upsertUser(user) {
+  if (database.driver === "mysql") {
+    const publicData = stripSensitive(user);
+    await database.mysqlPool.execute(
+      `
+        INSERT INTO lms_users (id, username, email, identity_value, role, status, password_hash, data)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          username = VALUES(username),
+          email = VALUES(email),
+          identity_value = VALUES(identity_value),
+          role = VALUES(role),
+          status = VALUES(status),
+          password_hash = VALUES(password_hash),
+          data = VALUES(data)
+      `,
+      [
+        user.id,
+        user.username,
+        user.email || null,
+        user.identity || null,
+        user.role,
+        user.status || "active",
+        user.passwordHash,
+        JSON.stringify(publicData),
+      ],
+    );
+    return;
+  }
+  await MongoUser.findOneAndUpdate({ id: user.id }, user, { upsert: true, new: true, setDefaultsOnInsert: true });
+}
+
+async function deleteUsersNotIn(ids) {
+  if (database.driver === "mysql") {
+    const placeholders = ids.map(() => "?").join(",");
+    await database.mysqlPool.execute(`DELETE FROM lms_users WHERE id NOT IN (${placeholders})`, ids);
+    return;
+  }
+  await MongoUser.deleteMany({ id: { $nin: ids } });
+}
+
+async function loadStoredAppData() {
+  if (database.driver === "mysql") {
+    const [rows] = await database.mysqlPool.execute("SELECT data FROM lms_app_data WHERE data_key = 'main' LIMIT 1");
+    return rows[0] ? parseJson(rows[0].data, null) : null;
+  }
+  const record = await MongoAppData.findOne({ key: "main" });
+  return record?.data || null;
+}
+
+async function saveStoredAppData(payload) {
+  if (database.driver === "mysql") {
+    await database.mysqlPool.execute(
+      `
+        INSERT INTO lms_app_data (data_key, data)
+        VALUES ('main', ?)
+        ON DUPLICATE KEY UPDATE data = VALUES(data)
+      `,
+      [JSON.stringify(payload)],
+    );
+    return;
+  }
+  await MongoAppData.findOneAndUpdate({ key: "main" }, { key: "main", data: payload }, { upsert: true, new: true });
 }
 
 app.post("/api/auth/login", requireDatabase, async (req, res) => {
   const identifier = String(req.body?.username || "").trim().toLowerCase();
   const password = String(req.body?.password || "");
-  const user = await User.findOne({
-    status: "active",
-    $or: [{ username: identifier }, { email: identifier }, { identity: identifier }],
-  });
+  const user = await findUserForLogin(identifier);
 
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     return res.status(401).json({ message: "Login gagal. Periksa username, email, NIM/NIDN, password, atau status akun." });
@@ -210,7 +391,7 @@ app.get("/api/data", requireDatabase, requireAuth, async (_req, res) => {
 app.put("/api/data", requireDatabase, requireAuth, async (req, res) => {
   if (!req.body || typeof req.body !== "object") return res.status(400).json({ message: "Payload data tidak valid." });
   await syncUsers(req.body.users || []);
-  await AppData.findOneAndUpdate({ key: "main" }, { key: "main", data: withoutUsers(req.body) }, { upsert: true, new: true });
+  await saveStoredAppData(withoutUsers(req.body));
   res.json(await loadAppData());
 });
 
@@ -396,7 +577,9 @@ app.post("/api/cetak-khs", requireDatabase, requireAuth, async (req, res) => {
   }
 });
 
-if (require.main === module) {
+const shouldListen = require.main === module || process.env.PASSENGER_APP_ENV || process.env.PASSENGER_BASE_URI || process.env.NODE_ENV === "production";
+
+if (shouldListen) {
   app.listen(PORT, () => {
     console.log(`LMS server berjalan di http://127.0.0.1:${PORT}`);
   });
