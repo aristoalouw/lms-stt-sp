@@ -2072,15 +2072,16 @@ async function downloadKhsPdf(actionButton) {
       button.textContent = "Membuat PDF...";
     }
 
-    const response = await fetch("http://127.0.0.1:3000/api/cetak-khs", {
+    const response = await fetch("/api/cetak-khs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(buildKhsPayloadForCurrentUser()),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `Gagal membuat PDF KHS. Status ${response.status}`);
+      const errorPayload = await response.json().catch(async () => ({ message: await response.text() }));
+      throw new Error(errorPayload.message || errorPayload.detail || `Gagal membuat PDF KHS. Status ${response.status}`);
     }
 
     const blob = await response.blob();
