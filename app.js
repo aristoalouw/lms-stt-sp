@@ -74,6 +74,12 @@ function gradeWeightFromLetter(letter, directWeight) {
   return 0;
 }
 
+function gradeWeightValue(value, fallbackLetter = "") {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) return roundTwo(numeric);
+  return gradeWeightFromLetter(fallbackLetter);
+}
+
 function gradeLetterFromWeight(weight) {
   const target = Number(weight);
   if (!Number.isFinite(target)) return "E";
@@ -234,7 +240,7 @@ function normalizeData(source) {
   normalized.submissions ||= [];
   normalized.gradeEntries ||= structuredClone(seedData.gradeEntries);
   normalized.gradeEntries = normalized.gradeEntries.map((row, index) => {
-    const grade = gradeWeightFromLetter(row.letter || row.nilai_huruf, row.grade ?? row.bobotAngka);
+    const grade = gradeWeightValue(row.grade ?? row.bobot_angka ?? row.bobotAngka, row.letter || row.nilai_huruf);
     const credits = Number(row.credits ?? row.sks ?? 0);
     return {
       ...row,
@@ -442,7 +448,7 @@ function courseCheckboxes(name, selectedIds = [], courses = data.courses) {
           ${groups[semesterLevel]
             .map(
               (course) => `
-              <label class="check-row">
+              <label class="check-row" data-course-option data-search-text="${escapeHtml(`${course.code} ${course.className || ""} ${course.name} ${course.semesterLevel || ""}`.toLowerCase())}">
                 <input type="checkbox" name="${name}" value="${course.id}" ${selectedIds.includes(course.id) ? "checked" : ""} />
                 <span>${escapeHtml(`${course.code}-${course.className} ${course.name}`)} <small>${Number(course.credits || 0)} SKS</small></span>
               </label>
@@ -1277,29 +1283,17 @@ function formatKhsDecimal(value, useComma = false) {
 }
 
 function calculateKhs(courseList) {
-  const nilaiMap = {
-    A: 4.0,
-    "A-": 3.7,
-    "B+": 3.3,
-    B: 3.0,
-    "B-": 2.7,
-    "C+": 2.4,
-    C: 2.0,
-    "C-": 1.7,
-    D: 1.0,
-    E: 0.0,
-  };
   const rows = courseList.map((item, index) => {
     const credits = Number(item.sks ?? item.credits ?? 0);
     const nilaiHuruf = String(item.nilai_huruf ?? item.letter ?? "").toUpperCase();
-    const grade = nilaiMap[nilaiHuruf] ?? 0;
+    const grade = gradeWeightValue(item.bobot_angka ?? item.grade, nilaiHuruf);
     const weighted = roundTwo(credits * grade);
     return {
       no: Number(item.no || index + 1),
       kode: item.kode ?? item.code ?? "",
       mata_kuliah: item.mata_kuliah ?? item.subject ?? "",
       sks: credits,
-      nilai_huruf: nilaiHuruf,
+      nilai_huruf: nilaiHuruf || gradeLetterFromWeight(grade),
       bobot_angka: grade,
       sks_x_nilai: weighted,
     };
@@ -1643,7 +1637,7 @@ function renderGrades() {
                           <td>${escapeHtml(row.subject)}</td>
                           <td>${Number(row.credits)}</td>
                           <td>${escapeHtml(row.letter || "")}</td>
-                          <td>${formatKhsDecimal(roundTwo(Number(row.credits || 0) * gradeWeightFromLetter(row.letter, row.grade)))}</td>
+                          <td>${formatKhsDecimal(roundTwo(Number(row.credits || 0) * gradeWeightValue(row.grade, row.letter)))}</td>
                           <td>
                             ${
                               state.khsEditMode
@@ -1693,8 +1687,8 @@ function renderGrades() {
             <label>Mata kuliah<select name="courseId" required>
               ${courseOptionsForStudent(formStudentId, formCourseId)}
             </select></label>
-            <label>Bobot angka<input name="grade" data-action="grade-weight-input" type="number" min="0" max="4" step="0.01" value="${Number.isFinite(formGrade) ? formGrade : 4}" required /></label>
-            <label>Nilai huruf<select name="letter" data-action="grade-letter-input" required>${gradeLetterOptions(formLetter)}</select></label>
+            <label>Bobot angka<input name="grade" type="number" min="0" max="4" step="0.01" value="${Number.isFinite(formGrade) ? formGrade : 4}" required /></label>
+            <label>Nilai huruf<select name="letter" required>${gradeLetterOptions(formLetter)}</select></label>
             <div class="form-actions">
               <button class="primary-button" type="submit" ${studentCourses.length || editingGrade ? "" : "disabled"}><i data-lucide="save"></i>${editingGrade ? "Simpan perubahan" : "Simpan nilai"}</button>
               ${editingGrade ? `<button class="subtle-button" type="button" data-action="cancel-edit-grade-entry"><i data-lucide="x"></i>Batal</button>` : ""}
@@ -2611,6 +2605,7 @@ function renderAcademic() {
             <input name="currentSemester" type="hidden" value="${escapeHtml(CURRENT_ACTIVE_SEMESTER)}" />
             <div class="field-group">
               <strong>Mata kuliah yang diambil</strong>
+              <input class="search-input" type="search" data-action="course-checkbox-search" placeholder="Cari kode atau nama mata kuliah..." autocomplete="off" />
               <div class="checkbox-groups">${courseCheckboxes("courseIds", editingStudent?.enrolledCourseIds || [], visibleCourses)}</div>
             </div>
             <div class="form-actions">
@@ -2805,7 +2800,7 @@ function buildKhsPayloadForCurrentUser() {
       nama_mk: row.subject,
       sks: Number(row.credits || 0),
       nilai_huruf: row.letter || "",
-      bobot_angka: gradeWeightFromLetter(row.letter, row.grade),
+      bobot_angka: gradeWeightValue(row.grade, row.letter),
     })),
   };
 }
@@ -3495,12 +3490,6 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("change", (event) => {
-  if (event.target.dataset.action === "grade-letter-input") {
-    const form = event.target.closest('form[data-form="grade-entry"]');
-    const gradeInput = form?.querySelector('[name="grade"]');
-    if (gradeInput) gradeInput.value = gradeWeightFromLetter(event.target.value).toFixed(1);
-    return;
-  }
   if (event.target.dataset.action === "course-filter") {
     state.courseFilter = event.target.value;
     renderView();
@@ -3540,10 +3529,14 @@ document.addEventListener("change", (event) => {
 });
 
 document.addEventListener("input", (event) => {
-  if (event.target.dataset.action !== "grade-weight-input") return;
-  const form = event.target.closest('form[data-form="grade-entry"]');
-  const letterSelect = form?.querySelector('[name="letter"]');
-  if (letterSelect) letterSelect.value = gradeLetterFromWeight(event.target.value);
+  if (event.target.dataset.action === "course-checkbox-search") {
+    const query = event.target.value.trim().toLowerCase();
+    const container = event.target.closest(".field-group");
+    container?.querySelectorAll("[data-course-option]").forEach((option) => {
+      const haystack = option.dataset.searchText || option.textContent.toLowerCase();
+      option.hidden = Boolean(query) && !haystack.includes(query);
+    });
+  }
 });
 
 function handleAction(action, id, actionButton) {

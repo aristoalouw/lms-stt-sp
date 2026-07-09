@@ -460,29 +460,44 @@ function roundTwo(value) {
   return Math.round((Number(value) + 1e-9) * 100) / 100;
 }
 
+const gradeLetterWeights = {
+  A: 4.0,
+  "A-": 3.7,
+  "B+": 3.3,
+  B: 3.0,
+  "B-": 2.7,
+  "C+": 2.4,
+  C: 2.0,
+  "C-": 1.7,
+  D: 1.0,
+  E: 0.0,
+};
+
+function gradeWeightValue(value, fallbackLetter = "") {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) return roundTwo(numeric);
+  return gradeLetterWeights[String(fallbackLetter || "").toUpperCase()] ?? 0;
+}
+
+function gradeLetterFromWeight(weight) {
+  const target = Number(weight);
+  if (!Number.isFinite(target)) return "E";
+  const exact = Object.entries(gradeLetterWeights).find(([, value]) => Math.abs(value - target) < 0.001);
+  if (exact) return exact[0];
+  return Object.entries(gradeLetterWeights).reduce((best, current) => (Math.abs(current[1] - target) < Math.abs(best[1] - target) ? current : best))[0];
+}
+
 function calculateKhs(mataKuliah = []) {
-  const nilaiMap = {
-    A: 4.0,
-    "A-": 3.7,
-    "B+": 3.3,
-    B: 3.0,
-    "B-": 2.7,
-    "C+": 2.4,
-    C: 2.0,
-    "C-": 1.7,
-    D: 1.0,
-    E: 0.0,
-  };
   const rows = mataKuliah.map((item, index) => {
     const sks = Number(item.sks || 0);
     const nilaiHuruf = String(item.nilai_huruf || "").toUpperCase();
-    const bobotAngka = nilaiMap[nilaiHuruf] ?? 0;
+    const bobotAngka = gradeWeightValue(item.bobot_angka, nilaiHuruf);
     return {
       no: index + 1,
       kode: String(item.kode || ""),
       nama_mk: String(item.nama_mk || ""),
       sks,
-      nilai_huruf: nilaiHuruf,
+      nilai_huruf: nilaiHuruf || gradeLetterFromWeight(bobotAngka),
       bobot_angka: bobotAngka,
       sks_x_nilai: roundTwo(sks * bobotAngka),
     };
