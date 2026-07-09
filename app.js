@@ -1,0 +1,3154 @@
+const STORAGE_KEY = "nusantara-lms-data-v1";
+const CURRENT_USER_KEY = "nusantara-lms-current-user";
+const CURRENT_ACTIVE_SEMESTER = "Ganjil 2026/2027";
+
+const roleNames = {
+  student: "Mahasiswa",
+  lecturer: "Dosen",
+  staff: "Staf Akademik",
+  admin: "Administrator",
+};
+
+const seedData = {
+  users: [
+    {
+      id: "u-stu-1",
+      name: "Alya Ramadhani",
+      username: "mahasiswa01",
+      email: "alya@student.univ.ac.id",
+      password: "demo123",
+      role: "student",
+      status: "active",
+      identity: "230401001",
+      tahun_angkatan: "2023",
+      program: "Teologi S1",
+      faculty: "Fakultas Teknologi Informasi",
+      currentSemester: "Genap 2025/2026",
+      enrolledCourseIds: ["c-psi-a", "c-pbo-b", "c-stat-a"],
+    },
+    {
+      id: "u-stu-2",
+      name: "Raka Pratama",
+      username: "mahasiswa02",
+      email: "raka@student.univ.ac.id",
+      password: "demo123",
+      role: "student",
+      status: "active",
+      identity: "230401018",
+      tahun_angkatan: "2023",
+      program: "Teologi S1",
+      faculty: "Fakultas Teknologi Informasi",
+      currentSemester: "Genap 2025/2026",
+      enrolledCourseIds: ["c-psi-a", "c-pbo-b"],
+    },
+    {
+      id: "u-lect-1",
+      name: "Dr. Bima Santoso",
+      username: "dosen01",
+      email: "bima@univ.ac.id",
+      password: "demo123",
+      role: "lecturer",
+      status: "active",
+      identity: "0421078102",
+      program: "Sistem Informasi",
+      faculty: "Fakultas Teknologi Informasi",
+    },
+    {
+      id: "u-lect-2",
+      name: "Nadia Kurnia, M.Kom.",
+      username: "dosen02",
+      email: "nadia@univ.ac.id",
+      password: "demo123",
+      role: "lecturer",
+      status: "active",
+      identity: "0419118901",
+      program: "Informatika",
+      faculty: "Fakultas Teknologi Informasi",
+    },
+    {
+      id: "u-staff-1",
+      name: "Maya Wulandari",
+      username: "staf01",
+      email: "maya.akademik@univ.ac.id",
+      password: "demo123",
+      role: "staff",
+      status: "active",
+      identity: "AKD-017",
+      program: "Biro Akademik",
+      faculty: "Universitas",
+    },
+    {
+      id: "u-admin-1",
+      name: "Admin Sistem",
+      username: "admin01",
+      email: "admin@univ.ac.id",
+      password: "demo123",
+      role: "admin",
+      status: "active",
+      identity: "ADM-001",
+      program: "Teknologi Informasi",
+      faculty: "Universitas",
+    },
+  ],
+  courses: [
+    {
+      id: "c-psi-a",
+      code: "SI204",
+      name: "Pengembangan Sistem Informasi",
+      className: "A",
+      credits: 3,
+      semester: "Ganjil 2026/2027",
+      semesterLevel: "Semester 1",
+      program: "Sistem Informasi",
+      schedule: "Senin, 08.00-10.30",
+      room: "Hybrid R.301",
+      instructorIds: ["u-lect-1"],
+      studentIds: ["u-stu-1", "u-stu-2"],
+      progress: 68,
+      attendanceRate: 91,
+      status: "active",
+    },
+    {
+      id: "c-pbo-b",
+      code: "IF221",
+      name: "Pemrograman Berorientasi Objek",
+      className: "B",
+      credits: 4,
+      semester: "Ganjil 2026/2027",
+      semesterLevel: "Semester 1",
+      program: "Informatika",
+      schedule: "Rabu, 13.00-15.30",
+      room: "Lab Komputer 2",
+      instructorIds: ["u-lect-2"],
+      studentIds: ["u-stu-1", "u-stu-2"],
+      progress: 52,
+      attendanceRate: 86,
+      status: "active",
+    },
+    {
+      id: "c-stat-a",
+      code: "SI118",
+      name: "Statistika Bisnis",
+      className: "A",
+      credits: 3,
+      semester: "Ganjil 2026/2027",
+      semesterLevel: "Semester 2",
+      program: "Sistem Informasi",
+      schedule: "Jumat, 09.00-11.00",
+      room: "R.204",
+      instructorIds: ["u-lect-1"],
+      studentIds: ["u-stu-1"],
+      progress: 74,
+      attendanceRate: 94,
+      status: "active",
+    },
+  ],
+  materials: [
+    {
+      id: "m-1",
+      courseId: "c-psi-a",
+      title: "Pertemuan 6 - Analisis Kebutuhan",
+      type: "PDF",
+      description: "Materi elisitasi kebutuhan, user story, dan acceptance criteria.",
+      publishedAt: "2026-07-03",
+      visibility: "published",
+      size: "2.4 MB",
+      authorId: "u-lect-1",
+      accessedBy: ["u-stu-1"],
+    },
+    {
+      id: "m-2",
+      courseId: "c-pbo-b",
+      title: "Contoh Project OOP",
+      type: "ZIP",
+      description: "Starter project untuk latihan inheritance dan interface.",
+      publishedAt: "2026-07-04",
+      visibility: "published",
+      size: "5.9 MB",
+      authorId: "u-lect-2",
+      accessedBy: [],
+    },
+    {
+      id: "m-3",
+      courseId: "c-stat-a",
+      title: "Video Regresi Linear",
+      type: "Link",
+      description: "Tautan video pembahasan regresi dan interpretasi koefisien.",
+      publishedAt: "2026-07-06",
+      visibility: "scheduled",
+      size: "External",
+      authorId: "u-lect-1",
+      accessedBy: [],
+    },
+  ],
+  assignments: [
+    {
+      id: "a-1",
+      courseId: "c-psi-a",
+      title: "Dokumen Kebutuhan Sistem",
+      description: "Susun SRS ringkas dari studi kasus layanan akademik.",
+      deadline: "2026-07-12T23:59",
+      collectionType: "File upload",
+      maxSize: "10 MB",
+      weight: 20,
+      allowLate: false,
+      published: true,
+    },
+    {
+      id: "a-2",
+      courseId: "c-pbo-b",
+      title: "Implementasi Class Diagram",
+      description: "Bangun kode Java dari class diagram yang sudah diberikan.",
+      deadline: "2026-07-10T23:59",
+      collectionType: "File upload",
+      maxSize: "15 MB",
+      weight: 15,
+      allowLate: true,
+      published: true,
+    },
+  ],
+  submissions: [
+    {
+      id: "s-1",
+      assignmentId: "a-2",
+      studentId: "u-stu-1",
+      submittedAt: "2026-07-06T20:10",
+      answer: "oop-alya.zip",
+      status: "submitted",
+      grade: 88,
+      feedback: "Struktur class sudah baik, perkuat unit test.",
+    },
+  ],
+  gradeEntries: [
+    { id: "gr-1", studentId: "u-stu-1", no: 1, code: "SI204", subject: "Pengembangan Sistem Informasi", credits: 3, letter: "A", grade: 4, weighted: 12 },
+    { id: "gr-2", studentId: "u-stu-1", no: 2, code: "IF221", subject: "Pemrograman Berorientasi Objek", credits: 4, letter: "A-", grade: 3.7, weighted: 14.8 },
+    { id: "gr-3", studentId: "u-stu-1", no: 3, code: "SI118", subject: "Statistika Bisnis", credits: 3, letter: "B", grade: 3, weighted: 9 },
+  ],
+  settings: {
+    letterheadDataUrl: "",
+    letterheadName: "",
+  },
+  quizzes: [
+    {
+      id: "q-1",
+      courseId: "c-psi-a",
+      title: "Kuis Validasi Kebutuhan",
+      duration: 30,
+      startsAt: "2026-07-09T09:00",
+      endsAt: "2026-07-09T11:00",
+      questionCount: 12,
+      randomizeQuestions: true,
+      status: "published",
+      attempts: [{ studentId: "u-stu-1", score: 82, submittedAt: "2026-07-05T09:33" }],
+    },
+    {
+      id: "q-2",
+      courseId: "c-pbo-b",
+      title: "Ujian Praktik Inheritance",
+      duration: 75,
+      startsAt: "2026-07-14T13:00",
+      endsAt: "2026-07-14T15:00",
+      questionCount: 6,
+      randomizeQuestions: false,
+      status: "draft",
+      attempts: [],
+    },
+  ],
+  attendanceSessions: [
+    {
+      id: "att-1",
+      courseId: "c-psi-a",
+      meeting: 7,
+      date: "2026-07-07",
+      opensAt: "08:00",
+      closesAt: "10:45",
+      selfCheckin: true,
+      records: [
+        { studentId: "u-stu-1", status: "Hadir", note: "Check-in mandiri" },
+        { studentId: "u-stu-2", status: "Izin", note: "Surat izin" },
+      ],
+    },
+    {
+      id: "att-2",
+      courseId: "c-pbo-b",
+      meeting: 6,
+      date: "2026-07-08",
+      opensAt: "13:00",
+      closesAt: "15:30",
+      selfCheckin: true,
+      records: [{ studentId: "u-stu-1", status: "Hadir", note: "" }],
+    },
+  ],
+  announcements: [
+    {
+      id: "ann-1",
+      title: "Sinkronisasi KRS selesai",
+      body: "Data peserta kelas semester ganjil sudah diperbarui dari Sistem Informasi Akademik.",
+      target: "Seluruh pengguna",
+      courseId: null,
+      createdBy: "u-staff-1",
+      publishedAt: "2026-07-06",
+    },
+    {
+      id: "ann-2",
+      title: "Materi analisis kebutuhan sudah tersedia",
+      body: "Silakan pelajari materi sebelum sesi diskusi hari Senin.",
+      target: "Kelas SI204-A",
+      courseId: "c-psi-a",
+      createdBy: "u-lect-1",
+      publishedAt: "2026-07-03",
+    },
+  ],
+  calendarEvents: [
+    {
+      id: "cal-1",
+      title: "Awal perkuliahan semester ganjil",
+      date: "2026-07-06",
+      category: "Akademik",
+      target: "Seluruh mahasiswa",
+      description: "Perkuliahan semester ganjil dimulai untuk seluruh program studi.",
+      createdBy: "u-staff-1",
+    },
+    {
+      id: "cal-2",
+      title: "Batas perubahan KRS",
+      date: "2026-07-15",
+      category: "Registrasi",
+      target: "Seluruh mahasiswa",
+      description: "Mahasiswa dapat melakukan perubahan KRS sampai pukul 23.59.",
+      createdBy: "u-staff-1",
+    },
+    {
+      id: "cal-3",
+      title: "Ujian Tengah Semester",
+      date: "2026-07-22",
+      category: "Ujian",
+      target: "Seluruh pengguna",
+      description: "Pelaksanaan UTS mengikuti jadwal yang diterbitkan oleh akademik.",
+      createdBy: "u-admin-1",
+    },
+  ],
+  discussions: [
+    {
+      id: "d-1",
+      courseId: "c-psi-a",
+      title: "Diskusi studi kasus registrasi kelas",
+      locked: false,
+      posts: [
+        { authorId: "u-lect-1", body: "Tuliskan risiko utama dari proses registrasi manual.", createdAt: "2026-07-06 10:14" },
+        { authorId: "u-stu-1", body: "Risiko duplikasi data dan keterlambatan validasi KRS.", createdAt: "2026-07-06 12:03" },
+      ],
+    },
+  ],
+  notifications: [
+    { id: "n-1", userId: "u-stu-1", title: "Pengumuman baru", body: "Sinkronisasi KRS selesai.", read: false, entityType: "announcement", entityId: "ann-1" },
+    { id: "n-2", userId: "u-stu-1", title: "Agenda akademik", body: "Batas perubahan KRS tersedia di kalender akademik.", read: false, entityType: "calendar", entityId: "cal-2" },
+  ],
+  audit: [
+    { id: "log-1", actor: "Maya Wulandari", action: "Import kelas dari SIAKAD", time: "2026-07-06 08:15", status: "Berhasil" },
+    { id: "log-2", actor: "Dr. Bima Santoso", action: "Publikasi materi SI204-A", time: "2026-07-03 16:42", status: "Berhasil" },
+    { id: "log-3", actor: "Admin Sistem", action: "Backup harian", time: "2026-07-07 02:00", status: "Berhasil" },
+  ],
+  integrations: [
+    { id: "int-1", source: "SIAKAD API", dataset: "KRS dan kelas", lastSync: "2026-07-06 08:15", status: "Tersinkron" },
+    { id: "int-2", source: "CSV Import", dataset: "Pengguna baru", lastSync: "2026-07-01 14:30", status: "Butuh validasi" },
+  ],
+};
+
+const navItems = [
+  { id: "dashboard", label: "Dashboard", icon: "layout-dashboard", roles: ["student", "lecturer", "staff", "admin"] },
+  { id: "grades", label: "KHS", icon: "badge-check", roles: ["student", "lecturer", "staff", "admin"] },
+  { id: "announcements", label: "Pengumuman", icon: "megaphone", roles: ["student", "lecturer", "staff", "admin"] },
+  { id: "calendar", label: "Kalender Akademik", icon: "calendar-days", roles: ["student", "lecturer", "staff", "admin"] },
+  { id: "academic", label: "Data Akademik", icon: "graduation-cap", roles: ["staff", "admin"] },
+];
+
+const archivedNavItems = [
+  { id: "courses", label: "Kelas", icon: "book-open", roles: ["student", "lecturer", "staff", "admin"] },
+  { id: "materials", label: "Materi", icon: "folder-open", roles: ["student", "lecturer"] },
+  { id: "assignments", label: "Tugas", icon: "clipboard-list", roles: ["student", "lecturer"] },
+  { id: "quizzes", label: "Kuis", icon: "timer", roles: ["student", "lecturer"] },
+  { id: "attendance", label: "Absensi", icon: "calendar-check", roles: ["student", "lecturer"] },
+  { id: "reports", label: "Laporan", icon: "bar-chart-3", roles: ["lecturer", "staff", "admin"] },
+  { id: "users", label: "Pengguna", icon: "users", roles: ["admin"] },
+  { id: "academic", label: "Akademik", icon: "building-2", roles: ["staff", "admin"] },
+  { id: "integrations", label: "Integrasi", icon: "refresh-cw", roles: ["staff", "admin"] },
+  { id: "audit", label: "Audit Log", icon: "shield-check", roles: ["admin"] },
+];
+
+let data = loadData();
+let state = {
+  currentUserId: localStorage.getItem(CURRENT_USER_KEY),
+  activeView: "dashboard",
+  courseFilter: "all",
+  editAnnouncementId: null,
+  editCalendarEventId: null,
+  academicTab: "lecturers",
+  editAcademicUserId: null,
+  editCourseId: null,
+  academicTermFilter: CURRENT_ACTIVE_SEMESTER,
+  academicEditMode: {
+    lecturers: false,
+    students: false,
+    courses: false,
+  },
+  gradeStudentId: "",
+  editGradeEntryId: null,
+  gradeCohortFilter: "all",
+  khsEditMode: false,
+};
+
+const $ = (selector) => document.querySelector(selector);
+const content = $("#content");
+
+function loadData() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return normalizeData(structuredClone(seedData));
+  try {
+    return normalizeData(JSON.parse(stored));
+  } catch {
+    return normalizeData(structuredClone(seedData));
+  }
+}
+
+function normalizeData(source) {
+  const normalized = { ...structuredClone(seedData), ...source };
+  normalized.users ||= [];
+  normalized.courses ||= [];
+  normalized.courses = normalized.courses.map((course) => ({
+    ...course,
+    semester: course.semester || CURRENT_ACTIVE_SEMESTER,
+    semesterLevel: course.semesterLevel || course.semester_ke || "Semester 1",
+  }));
+  normalized.materials ||= [];
+  normalized.assignments ||= [];
+  normalized.submissions ||= [];
+  normalized.gradeEntries ||= structuredClone(seedData.gradeEntries);
+  normalized.gradeEntries = normalized.gradeEntries.map((row, index) => {
+    const grade = Number(row.grade ?? row.bobotAngka ?? 0);
+    return {
+      ...row,
+      no: Number(row.no || index + 1),
+      letter: row.letter || row.nilai_huruf || (grade >= 3.85 ? "A" : grade >= 3.65 ? "A-" : "B"),
+      grade,
+      weighted: Number(row.weighted ?? row.sks_x_nilai ?? Number(row.credits || row.sks || 0) * grade),
+      credits: Number(row.credits ?? row.sks ?? 0),
+      subject: row.subject || row.mata_kuliah || "",
+      code: row.code || row.kode || "",
+    };
+  });
+  normalized.settings = { ...structuredClone(seedData.settings), ...(normalized.settings || {}) };
+  normalized.settings.letterheadType ||= normalized.settings.letterheadDataUrl?.startsWith("data:application/pdf") ? "application/pdf" : normalized.settings.letterheadDataUrl ? "image/png" : "";
+  normalized.quizzes ||= [];
+  normalized.attendanceSessions ||= [];
+  normalized.announcements ||= [];
+  normalized.calendarEvents ||= structuredClone(seedData.calendarEvents);
+  normalized.discussions ||= [];
+  normalized.notifications ||= [];
+  normalized.audit ||= [];
+  normalized.integrations ||= [];
+  normalized.users = normalized.users.map((user) => {
+    if (user.role !== "student") return user;
+    const program = user.program === "Teologi S1" ? user.program : "Teologi S1";
+    const rawCohort = String(user.tahun_angkatan || "");
+    const tahunAngkatan = /^20\d{2}$/.test(rawCohort) && Number(rawCohort) >= 2001 ? rawCohort : inferCohortFromIdentity(user.identity);
+    return {
+      ...user,
+      program,
+      tahun_angkatan: String(tahunAngkatan),
+      currentSemester: user.currentSemester || normalized.courses[0]?.semester || "Ganjil 2026/2027",
+      enrolledCourseIds: user.enrolledCourseIds || [],
+    };
+  });
+  normalized.notifications = normalized.notifications.filter((item) => ["announcement", "calendar"].includes(item.entityType));
+  return normalized;
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function currentUser() {
+  return data.users.find((user) => user.id === state.currentUserId) || null;
+}
+
+function courseById(id) {
+  return data.courses.find((course) => course.id === id);
+}
+
+function userById(id) {
+  return data.users.find((user) => user.id === id);
+}
+
+function inferCohortFromIdentity(identity) {
+  const value = String(identity || "");
+  const fullYear = value.match(/20\d{2}/)?.[0];
+  if (fullYear) return fullYear;
+  const shortYear = value.match(/^\d{2}/)?.[0];
+  return shortYear ? `20${shortYear}` : String(new Date().getFullYear());
+}
+
+function studentCohort(student) {
+  return String(student?.tahun_angkatan || inferCohortFromIdentity(student?.identity));
+}
+
+function studentCohorts() {
+  return [...new Set(data.users.filter((user) => user.role === "student").map(studentCohort))]
+    .filter(Boolean)
+    .sort((a, b) => Number(b) - Number(a));
+}
+
+function cohortOptions(selected = "all", includeAll = true) {
+  const allOption = includeAll ? `<option value="all" ${selected === "all" ? "selected" : ""}>Semua angkatan</option>` : "";
+  return `${allOption}${studentCohorts()
+    .map((cohort) => `<option value="${escapeHtml(cohort)}" ${String(selected) === cohort ? "selected" : ""}>Angkatan ${escapeHtml(cohort)}</option>`)
+    .join("")}`;
+}
+
+function groupStudentsByCohort(students) {
+  return students.reduce((groups, student) => {
+    const cohort = studentCohort(student);
+    groups[cohort] ||= [];
+    groups[cohort].push(student);
+    return groups;
+  }, {});
+}
+
+function historicalSemesters() {
+  const terms = [];
+  for (let startYear = 2026; startYear >= 2020; startYear -= 1) {
+    terms.push(`Ganjil ${startYear}/${startYear + 1}`);
+    if (startYear > 2020) terms.push(`Genap ${startYear - 1}/${startYear}`);
+  }
+  return terms;
+}
+
+function semesterOptions(selected = CURRENT_ACTIVE_SEMESTER) {
+  return historicalSemesters()
+    .map((semester) => `<option value="${escapeHtml(semester)}" ${selected === semester ? "selected" : ""}>${escapeHtml(semester)}</option>`)
+    .join("");
+}
+
+function courseSemesterLevelOptions(selected = "Semester 1") {
+  return Array.from({ length: 8 }, (_, index) => `Semester ${index + 1}`)
+    .map((semester) => `<option value="${semester}" ${selected === semester ? "selected" : ""}>${semester}</option>`)
+    .join("");
+}
+
+function courseFullLabel(course) {
+  return `${course.code}-${course.className} ${course.name} (${course.semesterLevel || "Semester 1"}, ${course.semester})`;
+}
+
+function gradeLetterOptions(selected = "A") {
+  return Object.keys(gradeLetterWeights)
+    .map((letter) => `<option value="${letter}" ${selected === letter ? "selected" : ""}>${letter}</option>`)
+    .join("");
+}
+
+function courseCheckboxes(name, selectedIds = [], courses = data.courses) {
+  return courses
+    .map(
+      (course) => `
+      <label class="check-row">
+        <input type="checkbox" name="${name}" value="${course.id}" ${selectedIds.includes(course.id) ? "checked" : ""} />
+        <span>${escapeHtml(courseFullLabel(course))}</span>
+      </label>
+    `,
+    )
+    .join("");
+}
+
+function renderCourseDetails(courseLabels) {
+  if (!courseLabels.length) return `<span class="muted">Belum mengambil mata kuliah</span>`;
+  return `
+    <details class="course-details">
+      <summary>${courseLabels.length} mata kuliah</summary>
+      <div class="course-details-list">
+        ${courseLabels.map((label) => `<span>${escapeHtml(label)}</span>`).join("")}
+      </div>
+    </details>
+  `;
+}
+
+function renderCourseDetailsGrouped(courses) {
+  if (!courses.length) return `<span class="muted">Belum ada mata kuliah</span>`;
+  const groups = courses.reduce((result, course) => {
+    const key = course?.semesterLevel || "Semester 1";
+    result[key] ||= [];
+    result[key].push(course);
+    return result;
+  }, {});
+  return `
+    <details class="course-details">
+      <summary>${courses.length} mata kuliah</summary>
+      <div class="course-details-list">
+        ${Object.keys(groups)
+          .sort((a, b) => Number(a.replace(/\D/g, "")) - Number(b.replace(/\D/g, "")))
+          .map(
+            (semester) => `
+              <strong>${escapeHtml(semester)}</strong>
+              ${groups[semester].map((course) => `<span>${escapeHtml(courseFullLabel(course))}</span>`).join("")}
+            `,
+          )
+          .join("")}
+      </div>
+    </details>
+  `;
+}
+
+function groupCoursesBySemesterLevel(courses) {
+  return courses.reduce((groups, course) => {
+    const semester = course.semesterLevel || "Semester 1";
+    groups[semester] ||= [];
+    groups[semester].push(course);
+    return groups;
+  }, {});
+}
+
+function academicEditButton(tab) {
+  const active = Boolean(state.academicEditMode?.[tab]);
+  return `
+    <button class="subtle-button ${active ? "is-active" : ""}" type="button" data-action="toggle-academic-edit-mode" data-tab="${tab}">
+      <i data-lucide="${active ? "check" : "pencil"}"></i>${active ? "SELESAI" : "EDIT"}
+    </button>
+  `;
+}
+
+function academicActionCell(tab, buttonsHtml) {
+  return state.academicEditMode?.[tab] ? buttonsHtml : `<span class="muted">Mode baca</span>`;
+}
+
+function studentCheckboxes(name, selectedIds = []) {
+  return data.users
+    .filter((user) => user.role === "student")
+    .map(
+      (student) => `
+      <label class="check-row">
+        <input type="checkbox" name="${name}" value="${student.id}" ${selectedIds.includes(student.id) ? "checked" : ""} />
+        <span>${escapeHtml(student.name)} - ${escapeHtml(student.identity)} - ${escapeHtml(student.currentSemester || "-")}</span>
+      </label>
+    `,
+    )
+    .join("");
+}
+
+function lecturerCourseIds(lecturerId) {
+  return data.courses.filter((course) => course.instructorIds.includes(lecturerId)).map((course) => course.id);
+}
+
+function renumberGradeEntries(studentId) {
+  gradeRowsForStudent(studentId).forEach((row, index) => {
+    row.no = index + 1;
+  });
+}
+
+function renderLetterheadPreview(className = "letterhead-preview") {
+  if (!data.settings.letterheadDataUrl) return `<div class="empty-state">Belum ada kop surat.</div>`;
+  if (data.settings.letterheadType === "application/pdf") {
+    return `<embed class="${className}" src="${data.settings.letterheadDataUrl}" type="application/pdf" aria-label="${escapeHtml(data.settings.letterheadName || "Kop surat PDF")}" />`;
+  }
+  return `<img class="${className}" src="${data.settings.letterheadDataUrl}" alt="Preview kop surat" />`;
+}
+
+function renderPrintLetterhead() {
+  if (!data.settings.letterheadDataUrl) return "";
+  if (data.settings.letterheadType === "application/pdf") {
+    return `<embed class="khs-letterhead print-only" src="${data.settings.letterheadDataUrl}" type="application/pdf" aria-label="${escapeHtml(data.settings.letterheadName || "Kop surat PDF")}" />`;
+  }
+  return `<img class="khs-letterhead print-only" src="${data.settings.letterheadDataUrl}" alt="Kop surat" />`;
+}
+
+function formatDateTime(value) {
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function formatDate(value) {
+  return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(value));
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function accessibleCourses(user = currentUser()) {
+  if (!user) return [];
+  if (user.role === "student") return data.courses.filter((course) => course.studentIds.includes(user.id));
+  if (user.role === "lecturer") return data.courses.filter((course) => course.instructorIds.includes(user.id));
+  return data.courses;
+}
+
+function submissionsForAssignment(assignmentId) {
+  return data.submissions.filter((submission) => submission.assignmentId === assignmentId);
+}
+
+function assignmentStatus(assignment, user = currentUser()) {
+  const submission = data.submissions.find((item) => item.assignmentId === assignment.id && item.studentId === user.id);
+  if (submission?.grade !== null && submission?.grade !== undefined) return "Dinilai";
+  if (submission) return "Sudah dikumpulkan";
+  if (new Date(assignment.deadline) < new Date()) return "Terlambat";
+  return "Belum dikumpulkan";
+}
+
+function statusTag(status) {
+  const normalized = String(status).toLowerCase();
+  let tone = "blue";
+  if (["hadir", "dinilai", "berhasil", "tersinkron", "published", "aktif", "active"].includes(normalized)) tone = "green";
+  if (["terlambat", "izin", "scheduled", "butuh validasi", "draft"].includes(normalized)) tone = "amber";
+  if (["alpha", "nonaktif", "gagal"].includes(normalized)) tone = "red";
+  return `<span class="tag ${tone}">${escapeHtml(status)}</span>`;
+}
+
+function renderDemoAccounts() {
+  const accounts = data.users.filter((user) => ["student", "lecturer", "staff", "admin"].includes(user.role));
+  $("#demoAccounts").innerHTML = accounts
+    .filter((user, index, list) => list.findIndex((candidate) => candidate.role === user.role) === index)
+    .map(
+      (user) => `
+      <button class="demo-card" type="button" data-demo-login="${user.username}">
+        <strong>${roleNames[user.role]}</strong>
+        <span>${user.username} / demo123</span>
+      </button>
+    `,
+    )
+    .join("");
+}
+
+function showLogin() {
+  $("#loginScreen").classList.remove("hidden");
+  $("#appShell").classList.add("hidden");
+  renderDemoAccounts();
+  refreshIcons();
+}
+
+function showApp() {
+  const user = currentUser();
+  if (!user) {
+    localStorage.removeItem(CURRENT_USER_KEY);
+    showLogin();
+    return;
+  }
+  $("#loginScreen").classList.add("hidden");
+  $("#appShell").classList.remove("hidden");
+  $("#roleLabel").textContent = roleNames[user.role];
+  $("#activeRoleText").textContent = `${roleNames[user.role]} aktif`;
+  $("#userChip").innerHTML = `<span class="avatar">${user.name.slice(0, 2).toUpperCase()}</span><strong>${escapeHtml(user.name)}</strong>`;
+  renderNav();
+  renderNotifications();
+  renderView();
+}
+
+function renderNav() {
+  const user = currentUser();
+  const available = navItems.filter((item) => item.roles.includes(user.role));
+  if (!available.some((item) => item.id === state.activeView)) state.activeView = "dashboard";
+  $("#sideNav").innerHTML = available
+    .map(
+      (item) => `
+      <button class="nav-link ${state.activeView === item.id ? "active" : ""}" type="button" data-view="${item.id}">
+        <i data-lucide="${item.icon}"></i>
+        ${item.label}
+      </button>
+    `,
+    )
+    .join("");
+  refreshIcons();
+}
+
+function renderNotifications() {
+  const user = currentUser();
+  const items = data.notifications.filter((item) => item.userId === user.id && isNotificationSourceActive(item));
+  const unread = items.filter((item) => !item.read).length;
+  $("#notifCount").textContent = unread;
+  $("#notificationTray").innerHTML = `
+    <div class="panel-header">
+      <div>
+        <h3>Notifikasi</h3>
+        <p class="muted">${unread} belum dibaca</p>
+      </div>
+      <button class="subtle-button" type="button" data-action="mark-all-read">
+        <i data-lucide="check-check"></i>
+        Tandai dibaca
+      </button>
+    </div>
+    <div class="item-list">
+      ${
+        items.length
+          ? items
+              .map(
+                (item) => `
+                <article class="item-card">
+                  <div class="item-row">
+                    <strong>${escapeHtml(item.title)}</strong>
+                    ${item.read ? statusTag("Dibaca") : statusTag("Baru")}
+                  </div>
+                  <p class="muted">${escapeHtml(item.body)}</p>
+                </article>
+              `,
+              )
+              .join("")
+          : `<div class="empty-state">Tidak ada notifikasi.</div>`
+      }
+    </div>
+  `;
+  refreshIcons();
+}
+
+function isNotificationSourceActive(item) {
+  if (item.entityType === "announcement") return data.announcements.some((announcement) => announcement.id === item.entityId);
+  if (item.entityType === "calendar") return data.calendarEvents.some((event) => event.id === item.entityId);
+  return false;
+}
+
+function renderView() {
+  const item = navItems.find((nav) => nav.id === state.activeView);
+  $("#pageTitle").textContent = item?.label || "Dashboard";
+  const renderers = {
+    dashboard: renderDashboard,
+    courses: renderCourses,
+    materials: renderMaterials,
+    assignments: renderAssignments,
+    quizzes: renderQuizzes,
+    attendance: renderAttendance,
+    grades: renderGrades,
+    announcements: renderAnnouncements,
+    calendar: renderCalendar,
+    reports: renderReports,
+    users: renderUsers,
+    academic: renderAcademic,
+    integrations: renderIntegrations,
+    audit: renderAudit,
+  };
+  content.innerHTML = renderers[state.activeView]();
+  renderNav();
+  refreshIcons();
+}
+
+function renderMetric(label, value, note) {
+  return `
+    <article class="metric-card">
+      <span>${label}</span>
+      <strong>${value}</strong>
+      <small class="muted">${note}</small>
+    </article>
+  `;
+}
+
+function renderDashboard() {
+  const user = currentUser();
+  const unread = data.notifications.filter((item) => item.userId === user.id && !item.read).length;
+  const latestAnnouncements = data.announcements.slice(0, 3);
+  const upcomingEvents = data.calendarEvents
+    .filter((event) => new Date(event.date) >= new Date("2026-07-01"))
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(0, 4);
+
+  const roleSummary = {
+    student: "Pantau nilai, pengumuman, dan kalender akademik dari satu dashboard.",
+    lecturer: "Lihat ringkasan pengumuman dan agenda akademik yang relevan.",
+    staff: "Kelola informasi akademik, pengumuman, dan agenda kalender kampus.",
+    admin: "Kelola pengumuman, kalender akademik, dan informasi umum sistem LMS.",
+  };
+  const identityText = user.role === "student" ? `NIM ${user.identity}` : user.role === "lecturer" ? `NIDN/NUPTK ${user.identity}` : user.identity;
+  const semesterText = user.role === "student" ? user.currentSemester || "Semester belum diatur" : "Semester Ganjil 2026/2027";
+
+  return `
+    <section class="dashboard-hero">
+      <div class="hero-copy">
+        <p class="eyebrow">${roleNames[user.role]}</p>
+        <h2>Selamat datang, ${escapeHtml(user.name)}</h2>
+        <p class="muted">${roleSummary[user.role]}</p>
+        <div class="item-meta">
+          <span class="tag green">${escapeHtml(identityText)}</span>
+          <span class="tag blue">${escapeHtml(semesterText)}</span>
+          <span class="tag blue">Session aktif</span>
+          <span class="tag amber">${unread} notifikasi</span>
+        </div>
+      </div>
+      <div class="hero-image">
+        <img src="assets/campus-learning.jpeg" alt="Ilustrasi platform pembelajaran kampus" />
+      </div>
+    </section>
+
+    <section class="metric-grid">
+      ${renderMetric("Pengumuman aktif", data.announcements.length, "Informasi terbaru")}
+      ${renderMetric("Agenda akademik", data.calendarEvents.length, "Kalender kampus")}
+      ${renderMetric("Notifikasi baru", unread, "Dalam aplikasi")}
+    </section>
+
+    <section class="module-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Pengumuman terbaru</h3>
+            <p class="muted">Informasi akademik yang diterbitkan untuk pengguna LMS.</p>
+          </div>
+        </div>
+        <div class="item-list">
+          ${
+            latestAnnouncements.length
+              ? latestAnnouncements
+                  .map(
+                    (item) => `
+                    <article class="item-card">
+                      <div class="item-row">
+                        <strong>${escapeHtml(item.title)}</strong>
+                        ${statusTag(item.target)}
+                      </div>
+                      <p class="muted">${escapeHtml(item.body)}</p>
+                    </article>
+                  `,
+                  )
+                  .join("")
+              : `<div class="empty-state">Belum ada pengumuman.</div>`
+          }
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Agenda akademik</h3>
+            <p class="muted">Tanggal penting yang dikelola staf dan admin.</p>
+          </div>
+        </div>
+        <div class="item-list">
+          ${
+            upcomingEvents.length
+              ? upcomingEvents
+                  .map(
+                    (event) => `
+                    <article class="item-card">
+                      <div class="item-row">
+                        <strong>${escapeHtml(event.title)}</strong>
+                        ${statusTag(event.category)}
+                      </div>
+                      <span class="muted">${formatDate(event.date)} - ${escapeHtml(event.target)}</span>
+                    </article>
+                  `,
+                  )
+                  .join("")
+              : `<div class="empty-state">Belum ada agenda akademik.</div>`
+          }
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderActivityItems(courseIds) {
+  const materials = data.materials.filter((item) => courseIds.includes(item.courseId)).slice(0, 3);
+  const announcements = data.announcements.filter((item) => !item.courseId || courseIds.includes(item.courseId)).slice(0, 3);
+  const items = [
+    ...materials.map((item) => ({ type: "Materi", title: item.title, detail: `${courseById(item.courseId)?.code} - ${item.type}` })),
+    ...announcements.map((item) => ({ type: "Pengumuman", title: item.title, detail: item.target })),
+  ];
+  if (!items.length) return `<div class="empty-state">Belum ada aktivitas.</div>`;
+  return items
+    .map(
+      (item) => `
+      <article class="item-card">
+        <div class="item-row">
+          <strong>${escapeHtml(item.title)}</strong>
+          ${statusTag(item.type)}
+        </div>
+        <span class="muted">${escapeHtml(item.detail)}</span>
+      </article>
+    `,
+    )
+    .join("");
+}
+
+function courseOptions() {
+  return accessibleCourses()
+    .map((course) => `<option value="${course.id}">${course.code}-${course.className} ${escapeHtml(course.name)}</option>`)
+    .join("");
+}
+
+function filterByCourse(items) {
+  if (state.courseFilter === "all") return items;
+  return items.filter((item) => item.courseId === state.courseFilter);
+}
+
+function renderCourseFilter() {
+  return `
+    <select data-action="course-filter" aria-label="Filter kelas">
+      <option value="all" ${state.courseFilter === "all" ? "selected" : ""}>Semua kelas</option>
+      ${accessibleCourses()
+        .map((course) => `<option value="${course.id}" ${state.courseFilter === course.id ? "selected" : ""}>${course.code}-${course.className}</option>`)
+        .join("")}
+    </select>
+  `;
+}
+
+function renderCourses() {
+  const user = currentUser();
+  const courses = filterByCourse(accessibleCourses());
+  const canManage = ["staff", "admin"].includes(user.role);
+  return `
+    <section class="toolbar">
+      <div class="filters">${renderCourseFilter()}</div>
+      ${
+        canManage
+          ? `<button class="primary-button" type="button" data-action="create-course"><i data-lucide="plus"></i>Tambah kelas</button>`
+          : ""
+      }
+    </section>
+    <section class="card-grid">
+      ${courses
+        .map((course) => {
+          const lecturers = course.instructorIds.map((id) => userById(id)?.name).filter(Boolean).join(", ");
+          return `
+            <article class="item-card">
+              <div class="item-row">
+                <strong>${course.code}-${course.className}</strong>
+                ${statusTag(course.status === "active" ? "Aktif" : course.status)}
+              </div>
+              <h3>${escapeHtml(course.name)}</h3>
+              <div class="item-meta">
+                <span>${course.credits} SKS</span>
+                <span>${escapeHtml(course.program)}</span>
+                <span>${escapeHtml(course.schedule)}</span>
+              </div>
+              <p class="muted">Dosen: ${escapeHtml(lecturers)}</p>
+              <div class="progress"><span style="width:${course.progress}%"></span></div>
+              <div class="split-row">
+                <span class="muted">${course.studentIds.length} mahasiswa</span>
+                <span class="tag blue">Absensi ${course.attendanceRate}%</span>
+              </div>
+            </article>
+          `;
+        })
+        .join("")}
+    </section>
+  `;
+}
+
+function renderMaterials() {
+  const user = currentUser();
+  const courseIds = accessibleCourses().map((course) => course.id);
+  const materials = filterByCourse(data.materials.filter((material) => courseIds.includes(material.courseId)));
+  return `
+    <section class="module-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Materi pembelajaran</h3>
+            <p class="muted">File, tautan, dan jadwal publikasi materi kelas.</p>
+          </div>
+          <div class="filters">${renderCourseFilter()}</div>
+        </div>
+        <div class="item-list">
+          ${materials
+            .map(
+              (material) => `
+              <article class="item-card">
+                <div class="item-row">
+                  <strong>${escapeHtml(material.title)}</strong>
+                  ${statusTag(material.visibility === "published" ? "Published" : "Scheduled")}
+                </div>
+                <p class="muted">${escapeHtml(material.description)}</p>
+                <div class="item-meta">
+                  <span>${courseById(material.courseId)?.code}</span>
+                  <span>${material.type}</span>
+                  <span>${material.size}</span>
+                  <span>${formatDate(material.publishedAt)}</span>
+                </div>
+                ${
+                  user.role === "student"
+                    ? `<button class="subtle-button" type="button" data-action="access-material" data-id="${material.id}">
+                        <i data-lucide="download"></i>Akses materi
+                      </button>`
+                    : ""
+                }
+              </article>
+            `,
+            )
+            .join("")}
+        </div>
+      </div>
+      ${
+        user.role === "lecturer"
+          ? `
+          <form class="panel" data-form="material">
+            <div class="panel-header">
+              <div>
+                <h3>Unggah materi</h3>
+                <p class="muted">Simulasi validasi metadata dan publikasi.</p>
+              </div>
+            </div>
+            <label>Kelas<select name="courseId" required>${courseOptions()}</select></label>
+            <label>Judul<input name="title" placeholder="Pertemuan 8 - ..." required /></label>
+            <label>Jenis<select name="type"><option>PDF</option><option>PPTX</option><option>DOCX</option><option>Link</option><option>Video</option></select></label>
+            <label>Deskripsi<textarea name="description" required></textarea></label>
+            <button class="primary-button" type="submit"><i data-lucide="upload"></i>Publikasikan</button>
+          </form>
+        `
+          : renderSidePanel("Akses materi", "Mahasiswa hanya melihat materi yang sudah dipublikasikan dan aktivitas akses dicatat di data demo.")
+      }
+    </section>
+  `;
+}
+
+function renderAssignments() {
+  const user = currentUser();
+  const courseIds = accessibleCourses().map((course) => course.id);
+  const assignments = filterByCourse(data.assignments.filter((assignment) => courseIds.includes(assignment.courseId)));
+  return `
+    <section class="module-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Tugas kelas</h3>
+            <p class="muted">Deadline, status pengumpulan, nilai, dan feedback.</p>
+          </div>
+          <div class="filters">${renderCourseFilter()}</div>
+        </div>
+        <div class="item-list">
+          ${assignments
+            .map((assignment) => {
+              const submissions = submissionsForAssignment(assignment.id);
+              const ownSubmission = submissions.find((item) => item.studentId === user.id);
+              return `
+                <article class="item-card">
+                  <div class="item-row">
+                    <strong>${escapeHtml(assignment.title)}</strong>
+                    ${user.role === "student" ? statusTag(assignmentStatus(assignment, user)) : statusTag(`${submissions.length} terkumpul`)}
+                  </div>
+                  <p class="muted">${escapeHtml(assignment.description)}</p>
+                  <div class="item-meta">
+                    <span>${courseById(assignment.courseId)?.code}</span>
+                    <span>Deadline ${formatDateTime(assignment.deadline)}</span>
+                    <span>${assignment.collectionType}</span>
+                    <span>Bobot ${assignment.weight}%</span>
+                  </div>
+                  ${
+                    user.role === "student"
+                      ? `
+                      <div class="split-row">
+                        <span class="muted">${ownSubmission ? `Jawaban: ${escapeHtml(ownSubmission.answer)}` : `Maksimal file ${assignment.maxSize}`}</span>
+                        ${
+                          !ownSubmission
+                            ? `<button class="primary-button" type="button" data-action="submit-assignment" data-id="${assignment.id}">
+                                <i data-lucide="send"></i>Kumpulkan
+                              </button>`
+                            : `<span class="tag green">Nilai ${ownSubmission.grade ?? "menunggu"}</span>`
+                        }
+                      </div>`
+                      : renderSubmissionTable(assignment, submissions)
+                  }
+                </article>
+              `;
+            })
+            .join("")}
+        </div>
+      </div>
+      ${
+        user.role === "lecturer"
+          ? `
+          <form class="panel" data-form="assignment">
+            <div class="panel-header">
+              <div>
+                <h3>Buat tugas</h3>
+                <p class="muted">Notifikasi demo dikirim ke mahasiswa kelas.</p>
+              </div>
+            </div>
+            <label>Kelas<select name="courseId" required>${courseOptions()}</select></label>
+            <label>Judul<input name="title" required placeholder="Judul tugas" /></label>
+            <label>Deadline<input name="deadline" type="datetime-local" required /></label>
+            <label>Bobot nilai<input name="weight" type="number" min="1" max="100" value="10" required /></label>
+            <label>Instruksi<textarea name="description" required></textarea></label>
+            <button class="primary-button" type="submit"><i data-lucide="plus"></i>Publikasikan tugas</button>
+          </form>
+        `
+          : renderSidePanel("Validasi pengumpulan", "Status otomatis membedakan belum dikumpulkan, terlambat, sudah dikumpulkan, dan dinilai.")
+      }
+    </section>
+  `;
+}
+
+function renderSubmissionTable(assignment, submissions) {
+  if (!submissions.length) return `<div class="empty-state">Belum ada pengumpulan.</div>`;
+  return `
+    <table class="data-table">
+      <thead><tr><th>Mahasiswa</th><th>Waktu</th><th>Nilai</th><th>Aksi</th></tr></thead>
+      <tbody>
+        ${submissions
+          .map(
+            (submission) => `
+            <tr>
+              <td>${escapeHtml(userById(submission.studentId)?.name || "-")}</td>
+              <td>${formatDateTime(submission.submittedAt)}</td>
+              <td>${submission.grade ?? "Menunggu"}</td>
+              <td>
+                <button class="subtle-button" type="button" data-action="grade-submission" data-id="${submission.id}">
+                  <i data-lucide="pencil"></i>Nilai
+                </button>
+              </td>
+            </tr>
+          `,
+          )
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderQuizzes() {
+  const user = currentUser();
+  const courseIds = accessibleCourses().map((course) => course.id);
+  const quizzes = filterByCourse(data.quizzes.filter((quiz) => courseIds.includes(quiz.courseId)));
+  return `
+    <section class="module-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Kuis dan ujian online</h3>
+            <p class="muted">Durasi, jadwal, randomisasi soal, dan hasil objektif.</p>
+          </div>
+          <div class="filters">${renderCourseFilter()}</div>
+        </div>
+        <div class="item-list">
+          ${quizzes
+            .map((quiz) => {
+              const attempt = quiz.attempts.find((item) => item.studentId === user.id);
+              return `
+                <article class="item-card">
+                  <div class="item-row">
+                    <strong>${escapeHtml(quiz.title)}</strong>
+                    ${statusTag(quiz.status === "published" ? "Published" : "Draft")}
+                  </div>
+                  <div class="item-meta">
+                    <span>${courseById(quiz.courseId)?.code}</span>
+                    <span>${quiz.duration} menit</span>
+                    <span>${quiz.questionCount} soal</span>
+                    <span>Mulai ${formatDateTime(quiz.startsAt)}</span>
+                  </div>
+                  <div class="split-row">
+                    <span class="muted">Acak soal: ${quiz.randomizeQuestions ? "Ya" : "Tidak"}</span>
+                    ${
+                      user.role === "student"
+                        ? attempt
+                          ? `<span class="tag green">Skor ${attempt.score}</span>`
+                          : `<button class="primary-button" type="button" data-action="start-quiz" data-id="${quiz.id}"><i data-lucide="play"></i>Mulai simulasi</button>`
+                        : `<span class="tag blue">${quiz.attempts.length} attempt</span>`
+                    }
+                  </div>
+                </article>
+              `;
+            })
+            .join("")}
+        </div>
+      </div>
+      ${
+        user.role === "lecturer"
+          ? `
+          <form class="panel" data-form="quiz">
+            <div class="panel-header">
+              <div>
+                <h3>Buat kuis dasar</h3>
+                <p class="muted">Bank soal detail dapat dikembangkan pada fase berikutnya.</p>
+              </div>
+            </div>
+            <label>Kelas<select name="courseId" required>${courseOptions()}</select></label>
+            <label>Judul<input name="title" required /></label>
+            <label>Durasi menit<input name="duration" type="number" min="5" value="30" required /></label>
+            <label>Jumlah soal<input name="questionCount" type="number" min="1" value="10" required /></label>
+            <button class="primary-button" type="submit"><i data-lucide="plus"></i>Simpan kuis</button>
+          </form>
+        `
+          : renderSidePanel("Autosave simulasi", "Saat mahasiswa memulai kuis demo, sistem membuat attempt dan skor objektif contoh.")
+      }
+    </section>
+  `;
+}
+
+function renderAttendance() {
+  const user = currentUser();
+  const courseIds = accessibleCourses().map((course) => course.id);
+  const sessions = filterByCourse(data.attendanceSessions.filter((session) => courseIds.includes(session.courseId)));
+  return `
+    <section class="module-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Absensi online</h3>
+            <p class="muted">Sesi absensi, status hadir, izin, sakit, dan alpha.</p>
+          </div>
+          <div class="filters">${renderCourseFilter()}</div>
+        </div>
+        <div class="item-list">
+          ${sessions
+            .map((session) => {
+              const course = courseById(session.courseId);
+              const own = session.records.find((record) => record.studentId === user.id);
+              return `
+                <article class="item-card">
+                  <div class="item-row">
+                    <strong>${course?.code}-${course?.className} Pertemuan ${session.meeting}</strong>
+                    ${statusTag(formatDate(session.date))}
+                  </div>
+                  <div class="item-meta">
+                    <span>Buka ${session.opensAt}-${session.closesAt}</span>
+                    <span>Mandiri: ${session.selfCheckin ? "Aktif" : "Nonaktif"}</span>
+                    <span>${session.records.length}/${course?.studentIds.length || 0} tercatat</span>
+                  </div>
+                  ${
+                    user.role === "student"
+                      ? own
+                        ? `<span class="tag green">${own.status}</span>`
+                        : `<button class="primary-button" type="button" data-action="checkin" data-id="${session.id}"><i data-lucide="check"></i>Absen hadir</button>`
+                      : renderAttendanceRecords(session)
+                  }
+                </article>
+              `;
+            })
+            .join("")}
+        </div>
+      </div>
+      ${
+        user.role === "lecturer"
+          ? `
+          <form class="panel" data-form="attendance">
+            <div class="panel-header">
+              <div>
+                <h3>Buka sesi absensi</h3>
+                <p class="muted">Mahasiswa dapat check-in selama sesi aktif.</p>
+              </div>
+            </div>
+            <label>Kelas<select name="courseId" required>${courseOptions()}</select></label>
+            <label>Pertemuan<input name="meeting" type="number" min="1" value="8" required /></label>
+            <label>Tanggal<input name="date" type="date" required /></label>
+            <button class="primary-button" type="submit"><i data-lucide="calendar-plus"></i>Buka absensi</button>
+          </form>
+        `
+          : renderSidePanel("Rekap otomatis", "Persentase kehadiran dihitung dan ditampilkan di dashboard kelas.")
+      }
+    </section>
+  `;
+}
+
+function renderAttendanceRecords(session) {
+  const course = courseById(session.courseId);
+  return `
+    <table class="data-table">
+      <thead><tr><th>Mahasiswa</th><th>Status</th><th>Catatan</th></tr></thead>
+      <tbody>
+        ${course.studentIds
+          .map((studentId) => {
+            const record = session.records.find((item) => item.studentId === studentId);
+            return `
+              <tr>
+                <td>${escapeHtml(userById(studentId)?.name || "-")}</td>
+                <td>${statusTag(record?.status || "Alpha")}</td>
+                <td>${escapeHtml(record?.note || "-")}</td>
+              </tr>
+            `;
+          })
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+const studentKhsRows = [
+  { code: "IF61133", name: "IMPLEMENTASI PERANGKAT LUNAK", credits: 2, score: 85.0, letter: "A", weight: 8.0 },
+  { code: "IF61134", name: "MANAJEMEN PROYEK", credits: 2, score: 80.5, letter: "AB", weight: 7.0 },
+  { code: "IF61131", name: "METODE DAN ANALISIS NUMERIK", credits: 2, score: 34.43, letter: "E", weight: 0.0 },
+  { code: "IF61135", name: "SISTEM MULTIMEDIA", credits: 2, score: 62.59, letter: "BC", weight: 5.0 },
+  { code: "IF611732", name: "DATA WAREHOUSE DAN DATA MINING", credits: 2, score: 90.2, letter: "A", weight: 8.0 },
+  { code: "IF612133", name: "ANALISIS KEBUTUHAN PERANGKAT LUNAK (DSE)", credits: 2, score: 82.85, letter: "A", weight: 8.0 },
+  { code: "IF612134", name: "PEMODELAN PERANGKAT LUNAK (DSE)", credits: 2, score: 81.45, letter: "A", weight: 8.0 },
+  { code: "IF613133", name: "PRAKTIKUM. IMPLEMENTASI PERANGKAT LUNAK", credits: 1, score: 76.0, letter: "AB", weight: 3.5 },
+  { code: "IF613134", name: "PRAKTIKUM. MANAJEMEN PROYEK", credits: 1, score: 77.5, letter: "B", weight: 3.0 },
+  { code: "IF613635", name: "PRAKTIKUM. SISTEM MULTIMEDIA", credits: 1, score: 68.65, letter: "BC", weight: 2.5 },
+  { code: "WN611036", name: "BAHASA INDONESIA", credits: 2, score: 73.8, letter: "B", weight: 6.0 },
+];
+
+function formatKhsDecimal(value, useComma = false) {
+  const formatted = Number(value).toFixed(2);
+  return useComma ? formatted.replace(".", ",") : formatted;
+}
+
+const gradeLetterWeights = {
+  A: 4.0,
+  "A-": 3.7,
+  B: 3.0,
+};
+
+function roundTwo(value) {
+  return Math.round((Number(value) + 1e-9) * 100) / 100;
+}
+
+function gradeWeightFromLetter(letter, directWeight) {
+  if (directWeight !== undefined && directWeight !== null && directWeight !== "") return Number(directWeight);
+  return gradeLetterWeights[String(letter).toUpperCase()] ?? 0;
+}
+
+function calculateKhs(courseList) {
+  const rows = courseList.map((item, index) => {
+    const credits = Number(item.sks ?? item.credits ?? 0);
+    const grade = gradeWeightFromLetter(item.nilai_huruf ?? item.letter, item.bobot_angka ?? item.grade);
+    const weighted = roundTwo(credits * grade);
+    return {
+      no: Number(item.no || index + 1),
+      kode: item.kode ?? item.code ?? "",
+      mata_kuliah: item.mata_kuliah ?? item.subject ?? "",
+      sks: credits,
+      nilai_huruf: item.nilai_huruf ?? item.letter ?? "",
+      bobot_angka: grade,
+      sks_x_nilai: weighted,
+    };
+  });
+  const total_sks = rows.reduce((total, row) => total + row.sks, 0);
+  const total_sks_x_nilai = roundTwo(rows.reduce((total, row) => total + row.sks_x_nilai, 0));
+  const ips = total_sks ? roundTwo(total_sks_x_nilai / total_sks) : 0;
+  return { rows, total_sks, total_sks_x_nilai, ips };
+}
+
+function gradeRowsForStudent(studentId) {
+  return data.gradeEntries
+    .filter((row) => row.studentId === studentId)
+    .sort((a, b) => Number(a.no) - Number(b.no));
+}
+
+function studentGradeOptions(selected = "", cohort = "all") {
+  return data.users
+    .filter((user) => user.role === "student" && (cohort === "all" || studentCohort(user) === String(cohort)))
+    .map(
+      (student) =>
+        `<option value="${student.id}" ${selected === student.id ? "selected" : ""}>${escapeHtml(student.name)} - ${escapeHtml(student.identity)} - Angkatan ${escapeHtml(studentCohort(student))}</option>`,
+    )
+    .join("");
+}
+
+function renderKhsTable(rows) {
+  const result = calculateKhs(
+    rows.map((row) => ({
+      no: row.no,
+      kode: row.code,
+      mata_kuliah: row.subject,
+      sks: row.credits,
+      nilai_huruf: row.letter,
+      bobot_angka: row.grade,
+    })),
+  );
+  return `
+    <div class="khs-table-wrap">
+      <table class="khs-table">
+        <thead>
+          <tr>
+            <th>No.</th>
+            <th>Kode</th>
+            <th>Mata Kuliah</th>
+            <th>SKS</th>
+            <th>Nilai</th>
+            <th>SKS X Nilai</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            rows.length
+              ? rows
+                  .map((row, index) => ({ source: row, calculated: result.rows[index] }))
+                  .map(
+                    ({ source, calculated }) => `
+                    <tr>
+                      <td>${calculated.no}</td>
+                      <td>${escapeHtml(source.code)}</td>
+                      <td class="subject-cell">${escapeHtml(source.subject)}</td>
+                      <td>${calculated.sks}</td>
+                      <td>${escapeHtml(calculated.nilai_huruf)}</td>
+                      <td>${formatKhsDecimal(calculated.sks_x_nilai)}</td>
+                    </tr>
+                  `,
+                  )
+                  .join("")
+              : `<tr><td colspan="6">Belum ada data nilai.</td></tr>`
+          }
+          <tr class="khs-total-row">
+            <td colspan="3">Total</td>
+            <td>${result.total_sks}</td>
+            <td></td>
+            <td>${formatKhsDecimal(result.total_sks_x_nilai, true)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="khs-table-wrap">
+      <table class="khs-table khs-summary-table">
+        <thead>
+          <tr>
+            <th>Prestasi Studi</th>
+            <th>SKS</th>
+            <th>Bobot</th>
+            <th>IPS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Nilai Akhir</td>
+            <td>${result.total_sks}</td>
+            <td>${formatKhsDecimal(result.total_sks_x_nilai)}</td>
+            <td>${formatKhsDecimal(result.ips)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderGrades() {
+  const user = currentUser();
+  const courses = accessibleCourses();
+  if (user.role === "student") {
+    const rows = gradeRowsForStudent(user.id);
+    return `
+      <section class="khs-panel">
+        <div class="khs-print-identity print-only">
+          <strong>Nama: ${escapeHtml(user.name)}</strong>
+          <span>NIM: ${escapeHtml(user.identity)}</span>
+          <span>Prodi: ${escapeHtml(user.program || "Teologi S1")}</span>
+        </div>
+        <div class="khs-meta-row">
+          <div class="khs-badges" aria-label="Informasi semester">
+            <span class="khs-badge green">2025/2026 Genap</span>
+            <span class="khs-badge blue">${escapeHtml(user.program || "Teologi S1")}</span>
+          </div>
+          <button class="print-khs-button" type="button" data-action="print-khs">
+            <i data-lucide="printer"></i>
+            Cetak KHS
+          </button>
+        </div>
+        ${renderKhsTable(rows)}
+      </section>
+    `;
+  }
+
+  if (["staff", "admin"].includes(user.role)) {
+    const gradeCohort = state.gradeCohortFilter || "all";
+    const gradeStudents = data.users.filter((item) => item.role === "student" && (gradeCohort === "all" || studentCohort(item) === String(gradeCohort)));
+    const selectedStudentId = gradeStudents.some((student) => student.id === state.gradeStudentId) ? state.gradeStudentId : gradeStudents[0]?.id || "";
+    if (state.gradeStudentId !== selectedStudentId) state.gradeStudentId = selectedStudentId;
+    const selectedStudent = userById(selectedStudentId);
+    const rows = data.gradeEntries
+      .filter((row) => row.studentId === selectedStudentId)
+      .map((row) => ({ ...row, student: userById(row.studentId) }))
+      .sort((a, b) => (a.student?.name || "").localeCompare(b.student?.name || "") || Number(a.no) - Number(b.no));
+    const editingGrade = state.editGradeEntryId ? data.gradeEntries.find((row) => row.id === state.editGradeEntryId) : null;
+    const formStudentId = editingGrade?.studentId || selectedStudentId;
+    const formCourse = editingGrade ? data.courses.find((course) => course.code === editingGrade.code) : null;
+    const formCourseId = formCourse?.id || data.courses[0]?.id || "";
+    const selectedKhs = calculateKhs(
+      rows.map((row) => ({
+        no: row.no,
+        kode: row.code,
+        mata_kuliah: row.subject,
+        sks: row.credits,
+        nilai_huruf: row.letter,
+        bobot_angka: row.grade,
+      })),
+    );
+    return `
+      <section class="module-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>KHS ${escapeHtml(selectedStudent?.name || "Mahasiswa")}</h3>
+              <p class="muted">Nilai yang ditampilkan hanya milik mahasiswa yang dipilih.</p>
+            </div>
+            <button class="subtle-button ${state.khsEditMode ? "is-active" : ""}" type="button" data-action="toggle-khs-edit-mode">
+              <i data-lucide="${state.khsEditMode ? "check" : "pencil"}"></i>${state.khsEditMode ? "SELESAI" : "EDIT"}
+            </button>
+          </div>
+          <div class="toolbar compact-toolbar">
+            <div class="filters">
+              <label>Angkatan<select name="gradeCohort" data-action="grade-cohort-filter">
+                ${cohortOptions(gradeCohort)}
+              </select></label>
+              <label>Mahasiswa<select name="gradeStudentId" data-action="grade-student-filter">
+                ${studentGradeOptions(selectedStudentId, gradeCohort)}
+              </select></label>
+            </div>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>Mahasiswa</th><th>No</th><th>Kode</th><th>Mata Kuliah</th><th>SKS</th><th>Nilai</th><th>SKS X Nilai</th><th>Aksi</th></tr></thead>
+            <tbody>
+              ${
+                rows.length
+                  ? rows
+                      .map(
+                        (row) => `
+                        <tr>
+                          <td>${escapeHtml(row.student?.name || "-")}<br /><span class="muted">${escapeHtml(row.student?.identity || "-")}</span></td>
+                          <td>${Number(row.no)}</td>
+                          <td>${escapeHtml(row.code)}</td>
+                          <td>${escapeHtml(row.subject)}</td>
+                          <td>${Number(row.credits)}</td>
+                          <td>${escapeHtml(row.letter || "")}</td>
+                          <td>${formatKhsDecimal(row.weighted)}</td>
+                          <td>
+                            ${
+                              state.khsEditMode
+                                ? `
+                                  <button class="subtle-button" type="button" data-action="edit-grade-entry" data-id="${row.id}">
+                                    <i data-lucide="pencil"></i>Edit
+                                  </button>
+                                  <button class="danger-button" type="button" data-action="delete-grade-entry" data-id="${row.id}">
+                                    <i data-lucide="trash-2"></i>Hapus
+                                  </button>
+                                `
+                                : `<span class="muted">Mode baca</span>`
+                            }
+                          </td>
+                        </tr>
+                      `,
+                      )
+                      .join("")
+                  : `<tr><td colspan="8">Belum ada data nilai untuk ${escapeHtml(selectedStudent?.name || "mahasiswa ini")}.</td></tr>`
+              }
+            </tbody>
+          </table>
+          <div class="khs-table-wrap staff-khs-summary">
+            <table class="khs-table khs-summary-table">
+              <thead><tr><th>Prestasi Studi</th><th>SKS</th><th>Bobot</th><th>IPS</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Nilai Akhir</td>
+                  <td>${selectedKhs.total_sks}</td>
+                  <td>${formatKhsDecimal(selectedKhs.total_sks_x_nilai)}</td>
+                  <td>${formatKhsDecimal(selectedKhs.ips)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel-stack">
+          <form class="panel" data-form="grade-entry">
+            <div class="panel-header">
+              <div>
+                <h3>${editingGrade ? "Edit nilai" : "Tambah nilai"}</h3>
+                <p class="muted">Bobot otomatis dihitung dari SKS x Nilai.</p>
+              </div>
+            </div>
+            <label>Mahasiswa<select name="studentId" data-action="grade-student-filter" required ${editingGrade ? "disabled" : ""}>${studentGradeOptions(formStudentId, gradeCohort)}</select></label>
+            ${editingGrade ? `<input name="studentId" type="hidden" value="${escapeHtml(formStudentId)}" />` : ""}
+            <label>Mata kuliah<select name="courseId" required>
+              ${data.courses.map((course) => `<option value="${course.id}" ${course.id === formCourseId ? "selected" : ""}>${escapeHtml(courseFullLabel(course))}</option>`).join("")}
+            </select></label>
+            <label>Nilai huruf<select name="letter" required>${gradeLetterOptions(editingGrade?.letter || "A")}</select></label>
+            <label>Bobot angka opsional<input name="grade" type="number" min="0" max="4" step="0.01" value="${editingGrade ? Number(editingGrade.grade || 0) : ""}" placeholder="Kosongkan untuk bobot default" /></label>
+            <div class="form-actions">
+              <button class="primary-button" type="submit"><i data-lucide="save"></i>${editingGrade ? "Simpan perubahan" : "Simpan nilai"}</button>
+              ${editingGrade ? `<button class="subtle-button" type="button" data-action="cancel-edit-grade-entry"><i data-lucide="x"></i>Batal</button>` : ""}
+            </div>
+          </form>
+        </div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h3>Gradebook kelas</h3>
+          <p class="muted">Ringkasan komponen nilai, bobot, dan histori input.</p>
+        </div>
+        <button class="subtle-button" type="button" data-action="export-report"><i data-lucide="download"></i>Export CSV</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Kelas</th><th>Tugas</th><th>Bobot</th><th>Terkumpul</th><th>Rata-rata</th></tr></thead>
+        <tbody>
+          ${data.assignments
+            .filter((assignment) => courses.some((course) => course.id === assignment.courseId))
+            .map((assignment) => {
+              const submissions = submissionsForAssignment(assignment.id);
+              const graded = submissions.filter((item) => typeof item.grade === "number");
+              const avg = graded.length ? Math.round(graded.reduce((total, item) => total + item.grade, 0) / graded.length) : "-";
+              return `
+                <tr>
+                  <td>${courseById(assignment.courseId)?.code}</td>
+                  <td>${escapeHtml(assignment.title)}</td>
+                  <td>${assignment.weight}%</td>
+                  <td>${submissions.length}</td>
+                  <td>${avg}</td>
+                </tr>
+              `;
+            })
+            .join("")}
+        </tbody>
+      </table>
+    </section>
+  `;
+}
+
+function renderAnnouncements() {
+  const user = currentUser();
+  const courseIds = accessibleCourses().map((course) => course.id);
+  const announcements = data.announcements.filter((item) => !item.courseId || courseIds.includes(item.courseId) || ["staff", "admin"].includes(user.role));
+  const canManage = ["staff", "admin"].includes(user.role);
+  const editing = state.editAnnouncementId ? data.announcements.find((item) => item.id === state.editAnnouncementId) : null;
+  const targetOptions = [
+    `<option value="" ${!editing?.courseId ? "selected" : ""}>Seluruh pengguna</option>`,
+    ...accessibleCourses().map(
+      (course) => `<option value="${course.id}" ${editing?.courseId === course.id ? "selected" : ""}>${course.code}-${course.className} ${escapeHtml(course.name)}</option>`,
+    ),
+  ].join("");
+  return `
+    <section class="module-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Pengumuman</h3>
+            <p class="muted">Target pengumuman dapat berupa kelas, program studi, fakultas, atau seluruh universitas.</p>
+          </div>
+        </div>
+        <div class="item-list">
+          ${announcements
+            .map(
+              (item) => `
+              <article class="item-card">
+                <div class="item-row">
+                  <strong>${escapeHtml(item.title)}</strong>
+                  ${statusTag(item.target)}
+                </div>
+                  <p>${escapeHtml(item.body)}</p>
+                  <div class="item-meta">
+                    <span>${formatDate(item.publishedAt)}</span>
+                    <span>Oleh ${escapeHtml(userById(item.createdBy)?.name || "Sistem")}</span>
+                  </div>
+                  ${
+                    canManage
+                      ? `
+                      <div class="split-row">
+                        <button class="subtle-button" type="button" data-action="edit-announcement" data-id="${item.id}">
+                          <i data-lucide="pencil"></i>Edit
+                        </button>
+                        <button class="danger-button" type="button" data-action="delete-announcement" data-id="${item.id}">
+                          <i data-lucide="trash-2"></i>Hapus
+                        </button>
+                      </div>
+                    `
+                      : ""
+                  }
+                </article>
+            `,
+            )
+            .join("")}
+        </div>
+      </div>
+      ${
+        canManage
+          ? `
+          <form class="panel" data-form="announcement">
+            <div class="panel-header">
+              <div>
+                <h3>${editing ? "Edit pengumuman" : "Buat pengumuman"}</h3>
+                <p class="muted">${editing ? "Simpan perubahan pengumuman yang sudah diterbitkan." : "Pengumuman baru mengirim notifikasi dalam aplikasi."}</p>
+              </div>
+              ${editing ? `<button class="subtle-button" type="button" data-action="cancel-edit-announcement"><i data-lucide="x"></i>Batal</button>` : ""}
+            </div>
+            <label>Target<select name="courseId">${targetOptions}</select></label>
+            <label>Judul<input name="title" value="${escapeHtml(editing?.title || "")}" required /></label>
+            <label>Isi<textarea name="body" required>${escapeHtml(editing?.body || "")}</textarea></label>
+            <button class="primary-button" type="submit"><i data-lucide="${editing ? "save" : "send"}"></i>${editing ? "Simpan perubahan" : "Publikasikan"}</button>
+          </form>
+        `
+          : renderSidePanel("Notifikasi", "Pengumuman yang relevan muncul di dashboard dan daftar notifikasi pengguna.")
+      }
+    </section>
+  `;
+}
+
+function renderCalendar() {
+  const user = currentUser();
+  const canManage = ["staff", "admin"].includes(user.role);
+  const editing = state.editCalendarEventId ? data.calendarEvents.find((item) => item.id === state.editCalendarEventId) : null;
+  const events = data.calendarEvents
+    .map((event) => ({ ...event, day: new Date(event.date).getDate() }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  return `
+    <section class="module-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Kalender akademik Juli 2026</h3>
+            <p class="muted">Agenda akademik resmi yang dikelola staf akademik dan administrator.</p>
+          </div>
+        </div>
+        <div class="calendar-grid">
+          ${Array.from({ length: 31 }, (_, index) => {
+            const day = index + 1;
+            const dayEvents = events.filter((event) => event.day === day);
+            return `
+              <div class="calendar-day">
+                <strong>${day}</strong>
+                ${dayEvents.map((event) => `<span class="mini-event">${escapeHtml(event.title)}</span>`).join("")}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Daftar agenda</h3>
+            <p class="muted">Tanggal penting akademik dan target penerimanya.</p>
+          </div>
+        </div>
+        <div class="item-list">
+          ${
+            events.length
+              ? events
+                  .map(
+                    (event) => `
+                    <article class="item-card">
+                      <div class="item-row">
+                        <strong>${escapeHtml(event.title)}</strong>
+                        ${statusTag(event.category)}
+                      </div>
+                      <p class="muted">${escapeHtml(event.description || "-")}</p>
+                      <div class="item-meta">
+                        <span>${formatDate(event.date)}</span>
+                        <span>${escapeHtml(event.target)}</span>
+                        <span>Oleh ${escapeHtml(userById(event.createdBy)?.name || "Sistem")}</span>
+                      </div>
+                      ${
+                        canManage
+                          ? `
+                          <div class="split-row">
+                            <button class="subtle-button" type="button" data-action="edit-calendar-event" data-id="${event.id}">
+                              <i data-lucide="pencil"></i>Edit
+                            </button>
+                            <button class="danger-button" type="button" data-action="delete-calendar-event" data-id="${event.id}">
+                              <i data-lucide="trash-2"></i>Hapus
+                            </button>
+                          </div>
+                        `
+                          : ""
+                      }
+                    </article>
+                  `,
+                  )
+                  .join("")
+              : `<div class="empty-state">Belum ada agenda akademik.</div>`
+          }
+        </div>
+      </div>
+
+      ${
+        canManage
+          ? `
+          <form class="panel" data-form="calendar-event">
+            <div class="panel-header">
+              <div>
+                <h3>${editing ? "Edit agenda" : "Tambah agenda"}</h3>
+                <p class="muted">${editing ? "Perbarui data kalender akademik." : "Tambahkan tanggal penting ke kalender akademik."}</p>
+              </div>
+              ${editing ? `<button class="subtle-button" type="button" data-action="cancel-edit-calendar-event"><i data-lucide="x"></i>Batal</button>` : ""}
+            </div>
+            <label>Tanggal<input name="date" type="date" value="${escapeHtml(editing?.date || "")}" required /></label>
+            <label>Judul<input name="title" value="${escapeHtml(editing?.title || "")}" required /></label>
+            <label>Kategori<select name="category">
+              ${["Akademik", "Registrasi", "Ujian", "Libur", "Administrasi"]
+                .map((category) => `<option ${editing?.category === category ? "selected" : ""}>${category}</option>`)
+                .join("")}
+            </select></label>
+            <label>Target<input name="target" value="${escapeHtml(editing?.target || "Seluruh pengguna")}" required /></label>
+            <label>Deskripsi<textarea name="description" required>${escapeHtml(editing?.description || "")}</textarea></label>
+            <button class="primary-button" type="submit"><i data-lucide="${editing ? "save" : "calendar-plus"}"></i>${editing ? "Simpan perubahan" : "Tambah agenda"}</button>
+          </form>
+        `
+          : ""
+      }
+    </section>
+  `;
+}
+
+function renderReports() {
+  const courses = accessibleCourses();
+  const activeUsers = data.users.filter((user) => user.status === "active").length;
+  const graded = data.submissions.filter((submission) => typeof submission.grade === "number").length;
+  return `
+    <section class="metric-grid">
+      ${renderMetric("Pengguna aktif", activeUsers, "Mahasiswa, dosen, staf, admin")}
+      ${renderMetric("Kelas aktif", data.courses.length, "Semester berjalan")}
+      ${renderMetric("Submission dinilai", graded, "Tugas dan kuis")}
+      ${renderMetric("Uptime target", "99%", "Kebutuhan non-fungsional")}
+    </section>
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h3>Laporan pembelajaran</h3>
+          <p class="muted">Dapat difilter berdasarkan semester, program studi, mata kuliah, dan kelas.</p>
+        </div>
+        <button class="subtle-button" type="button" data-action="export-report"><i data-lucide="file-spreadsheet"></i>Export CSV</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Kelas</th><th>Dosen</th><th>Mahasiswa</th><th>Progress</th><th>Kehadiran</th><th>Risiko</th></tr></thead>
+        <tbody>
+          ${courses
+            .map((course) => {
+              const lecturers = course.instructorIds.map((id) => userById(id)?.name).filter(Boolean).join(", ");
+              const risk = course.attendanceRate < 90 || course.progress < 60 ? "Perlu perhatian" : "Normal";
+              return `
+                <tr>
+                  <td>${course.code}-${course.className}<br /><span class="muted">${escapeHtml(course.name)}</span></td>
+                  <td>${escapeHtml(lecturers)}</td>
+                  <td>${course.studentIds.length}</td>
+                  <td>${course.progress}%</td>
+                  <td>${course.attendanceRate}%</td>
+                  <td>${statusTag(risk)}</td>
+                </tr>
+              `;
+            })
+            .join("")}
+        </tbody>
+      </table>
+    </section>
+  `;
+}
+
+function renderUsers() {
+  return `
+    <section class="module-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Manajemen pengguna</h3>
+            <p class="muted">Admin dapat menambah, mengubah status, dan mengelola role pengguna.</p>
+          </div>
+          <button class="subtle-button" type="button" data-action="import-users"><i data-lucide="upload"></i>Import CSV</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Nama</th><th>Role</th><th>Identitas</th><th>Status</th><th>Aksi</th></tr></thead>
+          <tbody>
+            ${data.users
+              .map(
+                (user) => `
+                <tr>
+                  <td>${escapeHtml(user.name)}<br /><span class="muted">${escapeHtml(user.email)}</span></td>
+                  <td>${roleNames[user.role]}</td>
+                  <td>${escapeHtml(user.identity)}</td>
+                  <td>${statusTag(user.status === "active" ? "Aktif" : "Nonaktif")}</td>
+                  <td>
+                    <button class="subtle-button" type="button" data-action="toggle-user" data-id="${user.id}">
+                      <i data-lucide="power"></i>${user.status === "active" ? "Nonaktifkan" : "Aktifkan"}
+                    </button>
+                  </td>
+                </tr>
+              `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+      <form class="panel" data-form="user">
+        <div class="panel-header">
+          <div>
+            <h3>Tambah pengguna</h3>
+            <p class="muted">Password demo otomatis: demo123.</p>
+          </div>
+        </div>
+        <label>Nama<input name="name" required /></label>
+        <label>Email<input name="email" type="email" required /></label>
+        <label>Username<input name="username" required /></label>
+        <label>Role<select name="role"><option value="student">Mahasiswa</option><option value="lecturer">Dosen</option><option value="staff">Staf Akademik</option><option value="admin">Administrator</option></select></label>
+        <button class="primary-button" type="submit"><i data-lucide="user-plus"></i>Tambah akun</button>
+      </form>
+    </section>
+  `;
+}
+
+function renderAcademic() {
+  const lecturers = data.users.filter((user) => user.role === "lecturer");
+  const students = data.users.filter((user) => user.role === "student");
+  const studentGroups = groupStudentsByCohort(students);
+  const activeTab = state.academicTab;
+  const academicTerm = state.academicTermFilter || CURRENT_ACTIVE_SEMESTER;
+  const visibleCourses = data.courses.filter((course) => course.semester === academicTerm);
+  const courseGroups = groupCoursesBySemesterLevel(visibleCourses);
+  const editingLecturer = activeTab === "lecturers" ? lecturers.find((lecturer) => lecturer.id === state.editAcademicUserId) : null;
+  const editingStudent = activeTab === "students" ? students.find((student) => student.id === state.editAcademicUserId) : null;
+  const editingCourse = activeTab === "courses" ? courseById(state.editCourseId) : null;
+  const defaultSemester = academicTerm;
+  return `
+    <section class="toolbar">
+      <div class="filters">
+        <button class="subtle-button ${activeTab === "lecturers" ? "is-active" : ""}" type="button" data-action="academic-tab" data-tab="lecturers">
+          <i data-lucide="briefcase-business"></i>Dosen
+        </button>
+        <button class="subtle-button ${activeTab === "students" ? "is-active" : ""}" type="button" data-action="academic-tab" data-tab="students">
+          <i data-lucide="graduation-cap"></i>Mahasiswa
+        </button>
+        <button class="subtle-button ${activeTab === "courses" ? "is-active" : ""}" type="button" data-action="academic-tab" data-tab="courses">
+          <i data-lucide="book-open"></i>Mata Kuliah
+        </button>
+        <button class="subtle-button ${activeTab === "sync" ? "is-active" : ""}" type="button" data-action="academic-tab" data-tab="sync">
+          <i data-lucide="refresh-cw"></i>Sinkronisasi
+        </button>
+        <label>Semester Berjalan<select data-action="academic-term-filter" name="academicTerm">
+          ${semesterOptions(academicTerm)}
+        </select></label>
+      </div>
+    </section>
+
+    ${
+      activeTab === "lecturers"
+        ? `
+        <section class="module-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Data dosen</h3>
+                <p class="muted">Dosen dapat mengampu beberapa mata kuliah lintas semester.</p>
+              </div>
+              ${academicEditButton("lecturers")}
+            </div>
+            <table class="data-table">
+              <thead><tr><th>Nama</th><th>NIDN/NUPTK</th><th>Username</th><th>Mata kuliah diampu</th><th>Aksi</th></tr></thead>
+              <tbody>
+                ${lecturers
+                  .map((lecturer) => {
+                    const lecturerCourses = visibleCourses.filter((course) => course.instructorIds.includes(lecturer.id));
+                    return `
+                      <tr>
+                        <td>${escapeHtml(lecturer.name)}</td>
+                        <td>${escapeHtml(lecturer.identity)}</td>
+                        <td>${escapeHtml(lecturer.username)}</td>
+                        <td>${renderCourseDetailsGrouped(lecturerCourses)}</td>
+                        <td>
+                          ${academicActionCell(
+                            "lecturers",
+                            `
+                              <button class="subtle-button" type="button" data-action="edit-academic-user" data-id="${lecturer.id}">
+                                <i data-lucide="pencil"></i>Edit
+                              </button>
+                              <button class="danger-button" type="button" data-action="delete-academic-user" data-id="${lecturer.id}">
+                                <i data-lucide="trash-2"></i>Hapus
+                              </button>
+                            `,
+                          )}
+                        </td>
+                      </tr>
+                    `;
+                  })
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+          <form class="panel" data-form="academic-lecturer">
+            <div class="panel-header">
+              <div>
+                <h3>${editingLecturer ? "Edit dosen" : "Tambah dosen"}</h3>
+                <p class="muted">Username, password, NIDN/NUPTK, nama, dan mata kuliah diampu.</p>
+              </div>
+            </div>
+            <label>Username<input name="username" value="${escapeHtml(editingLecturer?.username || "")}" required /></label>
+            <label>Password<input name="password" type="password" value="${escapeHtml(editingLecturer?.password || "")}" required /></label>
+            <label>NIDN/NUPTK<input name="identity" value="${escapeHtml(editingLecturer?.identity || "")}" required /></label>
+            <label>Nama dosen<input name="name" value="${escapeHtml(editingLecturer?.name || "")}" required /></label>
+            <div class="field-group">
+              <strong>Mata kuliah diampu</strong>
+              <div class="checkbox-list">${courseCheckboxes("courseIds", editingLecturer ? lecturerCourseIds(editingLecturer.id) : [], visibleCourses)}</div>
+            </div>
+            <div class="form-actions">
+              <button class="primary-button" type="submit"><i data-lucide="save"></i>${editingLecturer ? "Simpan perubahan" : "Tambah dosen"}</button>
+              ${editingLecturer ? `<button class="subtle-button" type="button" data-action="cancel-edit-academic-user"><i data-lucide="x"></i>Batal</button>` : ""}
+            </div>
+          </form>
+        </div>
+      `
+        : ""
+    }
+
+    ${
+      activeTab === "students"
+        ? `
+        <section class="module-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Data mahasiswa</h3>
+                <p class="muted">Mahasiswa disinkronkan dengan semester berjalan dan mata kuliah yang diambil.</p>
+              </div>
+              ${academicEditButton("students")}
+            </div>
+            <table class="data-table">
+              <thead><tr><th>Nama</th><th>NIM</th><th>Username</th><th>Prodi</th><th>Tahun Angkatan</th><th>Semester berjalan</th><th>Mata kuliah</th><th>Aksi</th></tr></thead>
+              <tbody>
+                ${Object.keys(studentGroups)
+                  .sort((a, b) => Number(b) - Number(a))
+                  .map(
+                    (cohort) => `
+                      <tr class="group-row"><td colspan="8">Angkatan ${escapeHtml(cohort)}</td></tr>
+                      ${studentGroups[cohort]
+                        .map((student) => {
+                          const courseLabels = visibleCourses.filter((course) => course.studentIds.includes(student.id)).map(courseFullLabel);
+                          return `
+                            <tr>
+                              <td>${escapeHtml(student.name)}</td>
+                              <td>${escapeHtml(student.identity)}</td>
+                              <td>${escapeHtml(student.username)}</td>
+                              <td>${escapeHtml(student.program || "Teologi S1")}</td>
+                              <td>${escapeHtml(studentCohort(student))}</td>
+                              <td>${escapeHtml(student.currentSemester || "-")}</td>
+                              <td>${renderCourseDetails(courseLabels)}</td>
+                              <td>
+                                ${academicActionCell(
+                                  "students",
+                                  `
+                                    <button class="subtle-button" type="button" data-action="edit-academic-user" data-id="${student.id}">
+                                      <i data-lucide="pencil"></i>Edit
+                                    </button>
+                                    <button class="danger-button" type="button" data-action="delete-academic-user" data-id="${student.id}">
+                                      <i data-lucide="trash-2"></i>Hapus
+                                    </button>
+                                  `,
+                                )}
+                              </td>
+                            </tr>
+                          `;
+                        })
+                        .join("")}
+                    `,
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+          <form class="panel" data-form="academic-student">
+            <div class="panel-header">
+              <div>
+                <h3>${editingStudent ? "Edit mahasiswa" : "Tambah mahasiswa"}</h3>
+                <p class="muted">Mata kuliah otomatis difilter agar sesuai semester berjalan mahasiswa.</p>
+              </div>
+            </div>
+            <label>Username<input name="username" value="${escapeHtml(editingStudent?.username || "")}" required /></label>
+            <label>Password<input name="password" type="password" value="${escapeHtml(editingStudent?.password || "")}" required /></label>
+            <label>NIM<input name="identity" value="${escapeHtml(editingStudent?.identity || "")}" required /></label>
+            <label>Nama mahasiswa<input name="name" value="${escapeHtml(editingStudent?.name || "")}" required /></label>
+            <label>Tahun angkatan<input name="tahun_angkatan" type="number" min="2000" max="2099" value="${escapeHtml(editingStudent ? studentCohort(editingStudent) : new Date().getFullYear())}" required /></label>
+            <label>Prodi<select name="program" required><option value="Teologi S1" ${(editingStudent?.program || "Teologi S1") === "Teologi S1" ? "selected" : ""}>Teologi S1</option></select></label>
+            <label>Semester berjalan<select name="currentSemester" required>${semesterOptions(editingStudent?.currentSemester || "")}</select></label>
+            <div class="field-group">
+              <strong>Mata kuliah yang diambil</strong>
+              <div class="checkbox-list">${courseCheckboxes("courseIds", editingStudent?.enrolledCourseIds || [], visibleCourses)}</div>
+            </div>
+            <div class="form-actions">
+              <button class="primary-button" type="submit"><i data-lucide="save"></i>${editingStudent ? "Simpan perubahan" : "Tambah mahasiswa"}</button>
+              ${editingStudent ? `<button class="subtle-button" type="button" data-action="cancel-edit-academic-user"><i data-lucide="x"></i>Batal</button>` : ""}
+            </div>
+          </form>
+        </section>
+      `
+        : ""
+    }
+
+    ${
+      activeTab === "courses"
+        ? `
+        <section class="module-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Data mata kuliah</h3>
+                <p class="muted">Master mata kuliah dipakai oleh input nilai, data dosen, data mahasiswa, dan sinkronisasi.</p>
+              </div>
+              ${academicEditButton("courses")}
+            </div>
+            <table class="data-table">
+              <thead><tr><th>Kode</th><th>Mata Kuliah</th><th>SKS</th><th>Semester Berjalan</th><th>Aksi</th></tr></thead>
+              <tbody>
+                ${
+                  Object.keys(courseGroups).length
+                    ? Object.keys(courseGroups)
+                        .sort((a, b) => Number(a.replace(/\D/g, "")) - Number(b.replace(/\D/g, "")))
+                        .map(
+                          (semesterLevel) => `
+                            <tr class="group-row"><td colspan="5">${escapeHtml(semesterLevel)}</td></tr>
+                            ${courseGroups[semesterLevel]
+                              .map(
+                                (course) => `
+                                <tr>
+                                  <td>${escapeHtml(course.code)}</td>
+                                  <td>${escapeHtml(course.name)}</td>
+                                  <td>${Number(course.credits)}</td>
+                                  <td>${escapeHtml(course.semester)}</td>
+                                  <td>
+                                    ${academicActionCell(
+                                      "courses",
+                                      `
+                                        <button class="subtle-button" type="button" data-action="edit-course" data-id="${course.id}">
+                                          <i data-lucide="pencil"></i>Edit
+                                        </button>
+                                        <button class="danger-button" type="button" data-action="delete-course" data-id="${course.id}">
+                                          <i data-lucide="trash-2"></i>Hapus
+                                        </button>
+                                      `,
+                                    )}
+                                  </td>
+                                </tr>
+                              `,
+                              )
+                              .join("")}
+                          `,
+                        )
+                        .join("")
+                    : `<tr><td colspan="5">Belum ada mata kuliah untuk semester berjalan ini.</td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+          <form class="panel" data-form="academic-course">
+            <div class="panel-header">
+              <div>
+                <h3>${editingCourse ? "Edit mata kuliah" : "Tambah mata kuliah"}</h3>
+                <p class="muted">Data ini menjadi pilihan mata kuliah pada input nilai dan sinkronisasi akademik.</p>
+              </div>
+            </div>
+            <label>Kode<input name="code" value="${escapeHtml(editingCourse?.code || "")}" required /></label>
+            <label>Mata Kuliah<input name="name" value="${escapeHtml(editingCourse?.name || "")}" required /></label>
+            <label>SKS<input name="credits" type="number" min="1" step="1" value="${Number(editingCourse?.credits || 2)}" required /></label>
+            <label>Semester<select name="semesterLevel" required>${courseSemesterLevelOptions(editingCourse?.semesterLevel || "Semester 1")}</select></label>
+            <label>Semester berjalan<select name="semester" required>${semesterOptions(editingCourse?.semester || defaultSemester)}</select></label>
+            <div class="form-actions">
+              <button class="primary-button" type="submit"><i data-lucide="save"></i>${editingCourse ? "Simpan perubahan" : "Tambah mata kuliah"}</button>
+              ${editingCourse ? `<button class="subtle-button" type="button" data-action="cancel-edit-course"><i data-lucide="x"></i>Batal</button>` : ""}
+            </div>
+          </form>
+        </section>
+      `
+        : ""
+    }
+
+    ${
+      activeTab === "sync"
+        ? `
+        <section class="module-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Sinkronisasi semester dan mata kuliah</h3>
+                <p class="muted">Pilih mata kuliah, dosen pengampu, dan mahasiswa. Sistem hanya menyimpan mahasiswa yang semester berjalannya sama dengan semester mata kuliah.</p>
+              </div>
+            </div>
+            <table class="data-table">
+              <thead><tr><th>Mata kuliah</th><th>Semester</th><th>Dosen</th><th>Mahasiswa tersinkron</th></tr></thead>
+              <tbody>
+                ${visibleCourses
+                  .map(
+                    (course) => `
+                    <tr>
+                      <td>${course.code}-${course.className}<br /><span class="muted">${escapeHtml(course.name)}</span></td>
+                      <td>${escapeHtml(course.semester)}</td>
+                      <td>${course.instructorIds.map((id) => escapeHtml(userById(id)?.name || "-")).join("<br />") || "-"}</td>
+                      <td>${course.studentIds.map((id) => escapeHtml(`${userById(id)?.name || "-"} (${userById(id)?.identity || "-"})`)).join("<br />") || "-"}</td>
+                    </tr>
+                  `,
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+          <form class="panel" data-form="academic-sync">
+            <div class="panel-header">
+              <div>
+                <h3>Atur sinkronisasi</h3>
+                <p class="muted">Relasi dosen-mahasiswa disimpan unik per mata kuliah dan semester.</p>
+              </div>
+            </div>
+            <label>Mata kuliah<select name="courseId" required>
+              ${visibleCourses.map((course) => `<option value="${course.id}">${escapeHtml(courseFullLabel(course))}</option>`).join("")}
+            </select></label>
+            <label>Dosen pengampu<select name="lecturerId" required>
+              ${lecturers.map((lecturer) => `<option value="${lecturer.id}">${escapeHtml(lecturer.name)} - ${escapeHtml(lecturer.identity)}</option>`).join("")}
+            </select></label>
+            <div class="field-group">
+              <strong>Mahasiswa peserta</strong>
+              <div class="checkbox-list">${studentCheckboxes("studentIds")}</div>
+            </div>
+            <button class="primary-button" type="submit"><i data-lucide="refresh-cw"></i>Sinkronkan</button>
+          </form>
+        </section>
+      `
+        : ""
+    }
+  `;
+}
+
+function renderIntegrations() {
+  return `
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h3>Integrasi Sistem Akademik</h3>
+          <p class="muted">API, import CSV/Excel, sinkronisasi berkala, dan log validasi data.</p>
+        </div>
+        <button class="primary-button" type="button" data-action="sync-academic"><i data-lucide="refresh-cw"></i>Sinkronkan</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Sumber</th><th>Dataset</th><th>Sinkron terakhir</th><th>Status</th></tr></thead>
+        <tbody>
+          ${data.integrations
+            .map(
+              (item) => `
+              <tr>
+                <td>${escapeHtml(item.source)}</td>
+                <td>${escapeHtml(item.dataset)}</td>
+                <td>${escapeHtml(item.lastSync)}</td>
+                <td>${statusTag(item.status)}</td>
+              </tr>
+            `,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </section>
+  `;
+}
+
+function renderAudit() {
+  return `
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h3>Audit log dan keamanan</h3>
+          <p class="muted">Aktivitas penting untuk traceability, backup, dan kontrol akses.</p>
+        </div>
+        <button class="subtle-button" type="button" data-action="backup"><i data-lucide="database-backup"></i>Backup sekarang</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Waktu</th><th>Aktor</th><th>Aksi</th><th>Status</th></tr></thead>
+        <tbody>
+          ${data.audit
+            .map(
+              (item) => `
+              <tr>
+                <td>${escapeHtml(item.time)}</td>
+                <td>${escapeHtml(item.actor)}</td>
+                <td>${escapeHtml(item.action)}</td>
+                <td>${statusTag(item.status)}</td>
+              </tr>
+            `,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </section>
+  `;
+}
+
+function renderSidePanel(title, body) {
+  return `
+    <aside class="panel">
+      <div class="panel-header">
+        <div>
+          <h3>${escapeHtml(title)}</h3>
+          <p class="muted">${escapeHtml(body)}</p>
+        </div>
+      </div>
+    </aside>
+  `;
+}
+
+function buildKhsPayloadForCurrentUser() {
+  const user = currentUser();
+  const rows = gradeRowsForStudent(user.id);
+  return {
+    mahasiswa: {
+      nama: user.name,
+      nim: user.identity,
+      prodi: user.program || "Teologi S1",
+    },
+    mata_kuliah: rows.map((row) => ({
+      kode: row.code,
+      nama_mk: row.subject,
+      sks: Number(row.credits || 0),
+      nilai_huruf: row.letter || "",
+      bobot_angka: Number(row.grade || 0),
+    })),
+  };
+}
+
+async function downloadKhsPdf(actionButton) {
+  const button = actionButton || document.querySelector('[data-action="print-khs"]');
+  const originalHtml = button?.innerHTML || "";
+  const user = currentUser();
+
+  try {
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Membuat PDF...";
+    }
+
+    const response = await fetch("http://127.0.0.1:3000/api/cetak-khs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildKhsPayloadForCurrentUser()),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Gagal membuat PDF KHS. Status ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `KHS_${String(user.identity || "mahasiswa").replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+
+    addAudit("Cetak KHS PDF");
+    saveData();
+  } catch (error) {
+    console.error(error);
+    addAudit("Gagal cetak KHS PDF", "Gagal");
+    saveData();
+    window.alert(error.message || "Gagal membuat PDF KHS.");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = originalHtml;
+      refreshIcons();
+    }
+  }
+}
+
+function addAudit(action, status = "Berhasil") {
+  data.audit.unshift({
+    id: `log-${Date.now()}`,
+    actor: currentUser()?.name || "Sistem",
+    action,
+    time: new Date().toLocaleString("id-ID"),
+    status,
+  });
+}
+
+function notifyUsers(userIds, title, body, meta = {}) {
+  if (!["announcement", "calendar"].includes(meta.entityType) || !meta.entityId) return;
+  [...new Set(userIds)].forEach((userId) => {
+    data.notifications.unshift({
+      id: `n-${Date.now()}-${userId}`,
+      userId,
+      title,
+      body,
+      read: false,
+      entityType: meta.entityType,
+      entityId: meta.entityId,
+    });
+  });
+}
+
+function removeNotifications(entityType, entityId) {
+  data.notifications = data.notifications.filter((item) => item.entityType !== entityType || item.entityId !== entityId);
+}
+
+function closeNotificationTray() {
+  $("#notificationTray")?.classList.add("hidden");
+}
+
+function refreshIcons() {
+  if (window.lucide) window.lucide.createIcons();
+}
+
+document.addEventListener("submit", (event) => {
+  if (event.target.id === "loginForm") {
+    event.preventDefault();
+    const username = $("#usernameInput").value.trim().toLowerCase();
+    const password = $("#passwordInput").value;
+    const user = data.users.find((item) => [item.username, item.email, item.identity].map(String).map((value) => value.toLowerCase()).includes(username));
+    if (!user || user.password !== password || user.status !== "active") {
+      $("#loginError").textContent = "Login gagal. Periksa username, password, atau status akun.";
+      return;
+    }
+    state.currentUserId = user.id;
+    localStorage.setItem(CURRENT_USER_KEY, user.id);
+    $("#loginError").textContent = "";
+    showApp();
+    return;
+  }
+
+  const formName = event.target.dataset.form;
+  if (!formName) return;
+  event.preventDefault();
+  if (formName === "letterhead") {
+    handleLetterheadUpload(event.target);
+    return;
+  }
+  const form = new FormData(event.target);
+  handleForm(formName, form);
+  event.target.reset();
+  saveData();
+  renderNotifications();
+  renderView();
+});
+
+function handleLetterheadUpload(formElement) {
+  const file = formElement.querySelector('input[name="letterhead"]')?.files?.[0];
+  if (!file) return;
+  const allowedTypes = ["application/pdf", "image/png"];
+  if (!allowedTypes.includes(file.type)) {
+    window.alert("Format kop surat harus PDF atau PNG.");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    data.settings.letterheadDataUrl = String(reader.result || "");
+    data.settings.letterheadName = file.name;
+    data.settings.letterheadType = file.type;
+    addAudit(`Upload kop surat KHS ${file.name}`);
+    saveData();
+    renderView();
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleForm(formName, form) {
+  const user = currentUser();
+  if (formName === "material") {
+    const material = {
+      id: `m-${Date.now()}`,
+      courseId: form.get("courseId"),
+      title: form.get("title"),
+      type: form.get("type"),
+      description: form.get("description"),
+      publishedAt: new Date().toISOString().slice(0, 10),
+      visibility: "published",
+      size: "Demo file",
+      authorId: user.id,
+      accessedBy: [],
+    };
+    data.materials.unshift(material);
+    notifyUsers(courseById(material.courseId).studentIds, "Materi baru", material.title);
+    addAudit(`Publikasi materi ${material.title}`);
+  }
+
+  if (formName === "assignment") {
+    const assignment = {
+      id: `a-${Date.now()}`,
+      courseId: form.get("courseId"),
+      title: form.get("title"),
+      description: form.get("description"),
+      deadline: form.get("deadline"),
+      collectionType: "File upload",
+      maxSize: "10 MB",
+      weight: Number(form.get("weight")),
+      allowLate: false,
+      published: true,
+    };
+    data.assignments.unshift(assignment);
+    notifyUsers(courseById(assignment.courseId).studentIds, "Tugas baru", assignment.title);
+    addAudit(`Publikasi tugas ${assignment.title}`);
+  }
+
+  if (formName === "quiz") {
+    const now = new Date();
+    const startsAt = new Date(now.getTime() + 86400000);
+    const endsAt = new Date(startsAt.getTime() + Number(form.get("duration")) * 60000);
+    data.quizzes.unshift({
+      id: `q-${Date.now()}`,
+      courseId: form.get("courseId"),
+      title: form.get("title"),
+      duration: Number(form.get("duration")),
+      startsAt: startsAt.toISOString().slice(0, 16),
+      endsAt: endsAt.toISOString().slice(0, 16),
+      questionCount: Number(form.get("questionCount")),
+      randomizeQuestions: true,
+      status: "published",
+      attempts: [],
+    });
+    addAudit(`Membuat kuis ${form.get("title")}`);
+  }
+
+  if (formName === "attendance") {
+    data.attendanceSessions.unshift({
+      id: `att-${Date.now()}`,
+      courseId: form.get("courseId"),
+      meeting: Number(form.get("meeting")),
+      date: form.get("date"),
+      opensAt: "08:00",
+      closesAt: "23:59",
+      selfCheckin: true,
+      records: [],
+    });
+    addAudit(`Membuka absensi pertemuan ${form.get("meeting")}`);
+  }
+
+  if (formName === "announcement") {
+    const courseId = form.get("courseId") || null;
+    const payload = {
+      title: form.get("title"),
+      body: form.get("body"),
+      target: courseId ? `${courseById(courseId).code}-${courseById(courseId).className}` : "Seluruh pengguna",
+      courseId,
+    };
+    if (state.editAnnouncementId) {
+      const announcement = data.announcements.find((item) => item.id === state.editAnnouncementId);
+      Object.assign(announcement, payload, { updatedBy: user.id, updatedAt: new Date().toISOString().slice(0, 10) });
+      const targets = courseId ? courseById(courseId).studentIds : data.users.map((item) => item.id);
+      notifyUsers(targets, "Pengumuman diperbarui", announcement.title, { entityType: "announcement", entityId: announcement.id });
+      addAudit(`Mengedit pengumuman ${announcement.title}`);
+      state.editAnnouncementId = null;
+    } else {
+      const announcement = {
+        id: `ann-${Date.now()}`,
+        ...payload,
+        createdBy: user.id,
+        publishedAt: new Date().toISOString().slice(0, 10),
+      };
+      data.announcements.unshift(announcement);
+      const targets = courseId ? courseById(courseId).studentIds : data.users.map((item) => item.id);
+      notifyUsers(targets, "Pengumuman baru", announcement.title, { entityType: "announcement", entityId: announcement.id });
+      addAudit(`Publikasi pengumuman ${announcement.title}`);
+    }
+  }
+
+  if (formName === "calendar-event") {
+    const payload = {
+      title: form.get("title"),
+      date: form.get("date"),
+      category: form.get("category"),
+      target: form.get("target"),
+      description: form.get("description"),
+    };
+    if (state.editCalendarEventId) {
+      const event = data.calendarEvents.find((item) => item.id === state.editCalendarEventId);
+      Object.assign(event, payload, { updatedBy: user.id, updatedAt: new Date().toISOString().slice(0, 10) });
+      notifyUsers(data.users.map((item) => item.id), "Kalender akademik diperbarui", event.title, { entityType: "calendar", entityId: event.id });
+      addAudit(`Mengedit agenda kalender ${event.title}`);
+      state.editCalendarEventId = null;
+    } else {
+      const event = {
+        id: `cal-${Date.now()}`,
+        ...payload,
+        createdBy: user.id,
+      };
+      data.calendarEvents.unshift(event);
+      notifyUsers(data.users.map((item) => item.id), "Agenda akademik baru", event.title, { entityType: "calendar", entityId: event.id });
+      addAudit(`Menambah agenda kalender ${payload.title}`);
+    }
+  }
+
+  if (formName === "grade-entry") {
+    const course = courseById(form.get("courseId"));
+    const credits = Number(course?.credits || 0);
+    const letter = form.get("letter");
+    const grade = gradeWeightFromLetter(letter, form.get("grade"));
+    const studentId = form.get("studentId");
+    const target = state.editGradeEntryId ? data.gradeEntries.find((row) => row.id === state.editGradeEntryId) : null;
+    const existingForCourse = data.gradeEntries.find((row) => row.studentId === studentId && row.code === course?.code && row.id !== target?.id);
+    const nextNo = gradeRowsForStudent(studentId).reduce((max, row) => Math.max(max, Number(row.no) || 0), 0) + 1;
+    const no = target?.no || existingForCourse?.no || nextNo;
+    data.gradeEntries = data.gradeEntries.filter((row) => row.id !== target?.id && !(row.studentId === studentId && row.code === course?.code));
+    data.gradeEntries.push({
+      id: target?.id || existingForCourse?.id || `gr-${Date.now()}`,
+      studentId,
+      no,
+      code: course?.code || "",
+      subject: course?.name || "",
+      credits,
+      letter,
+      grade,
+      weighted: roundTwo(credits * grade),
+    });
+    renumberGradeEntries(studentId);
+    state.gradeStudentId = studentId;
+    state.editGradeEntryId = null;
+    addAudit(`${target ? "Mengedit" : "Input"} nilai ${userById(studentId)?.name || studentId} ${course?.code || ""}`);
+  }
+
+  if (formName === "academic-lecturer") {
+    const lecturerId = state.editAcademicUserId || `u-lect-${Date.now()}`;
+    const courseIds = form.getAll("courseIds");
+    const payload = {
+      id: lecturerId,
+      name: form.get("name"),
+      username: form.get("username"),
+      email: `${form.get("username")}@univ.ac.id`,
+      password: form.get("password"),
+      role: "lecturer",
+      status: "active",
+      identity: form.get("identity"),
+      program: "Belum diatur",
+      faculty: "Belum diatur",
+    };
+    const existing = data.users.find((item) => item.id === lecturerId);
+    if (existing) Object.assign(existing, payload);
+    else data.users.push(payload);
+    data.courses.forEach((course) => {
+      course.instructorIds = course.instructorIds.filter((id) => id !== lecturerId);
+      if (courseIds.includes(course.id) && !course.instructorIds.includes(lecturerId)) course.instructorIds.push(lecturerId);
+    });
+    addAudit(`${existing ? "Mengedit" : "Menambah"} dosen ${form.get("name")} dan sinkron mata kuliah`);
+    state.editAcademicUserId = null;
+  }
+
+  if (formName === "academic-student") {
+    const studentId = state.editAcademicUserId || `u-stu-${Date.now()}`;
+    const currentSemester = form.get("currentSemester");
+    const courseIds = form.getAll("courseIds").filter((courseId) => courseById(courseId)?.semester === currentSemester);
+    const payload = {
+      id: studentId,
+      name: form.get("name"),
+      username: form.get("username"),
+      email: `${form.get("username")}@student.univ.ac.id`,
+      password: form.get("password"),
+      role: "student",
+      status: "active",
+      identity: form.get("identity"),
+      tahun_angkatan: String(form.get("tahun_angkatan") || inferCohortFromIdentity(form.get("identity"))),
+      program: form.get("program"),
+      faculty: "Belum diatur",
+      currentSemester,
+      enrolledCourseIds: courseIds,
+    };
+    const existing = data.users.find((item) => item.id === studentId);
+    if (existing) Object.assign(existing, payload);
+    else data.users.push(payload);
+    data.courses.forEach((course) => {
+      course.studentIds = course.studentIds.filter((id) => id !== studentId);
+      if (courseIds.includes(course.id) && !course.studentIds.includes(studentId)) course.studentIds.push(studentId);
+    });
+    addAudit(`${existing ? "Mengedit" : "Menambah"} mahasiswa ${form.get("name")} dan sinkron mata kuliah semester ${currentSemester}`);
+    state.editAcademicUserId = null;
+  }
+
+  if (formName === "academic-course") {
+    const courseId = state.editCourseId || `c-${Date.now()}`;
+    const existing = courseById(courseId);
+    const previousCode = existing?.code;
+    const payload = {
+      id: courseId,
+      code: form.get("code"),
+      name: form.get("name"),
+      className: existing?.className || "A",
+      credits: Number(form.get("credits") || 0),
+      semester: form.get("semester") || existing?.semester || data.courses[0]?.semester || "Ganjil 2026/2027",
+      semesterLevel: form.get("semesterLevel") || existing?.semesterLevel || "Semester 1",
+      program: existing?.program || "Teologi S1",
+      schedule: existing?.schedule || "Belum dijadwalkan",
+      room: existing?.room || "-",
+      instructorIds: existing?.instructorIds || [],
+      studentIds: existing?.studentIds || [],
+      progress: existing?.progress || 0,
+      attendanceRate: existing?.attendanceRate || 0,
+      status: existing?.status || "active",
+    };
+    if (existing) Object.assign(existing, payload);
+    else data.courses.push(payload);
+    data.gradeEntries
+      .filter((row) => row.code === previousCode || row.code === payload.code)
+      .forEach((row) => {
+        row.code = payload.code;
+        row.subject = payload.name;
+        row.credits = payload.credits;
+        row.weighted = roundTwo(payload.credits * Number(row.grade || 0));
+      });
+    addAudit(`${existing ? "Mengedit" : "Menambah"} mata kuliah ${payload.code}`);
+    state.editCourseId = null;
+  }
+
+  if (formName === "academic-sync") {
+    const course = courseById(form.get("courseId"));
+    const lecturerId = form.get("lecturerId");
+    const studentIds = form.getAll("studentIds").filter((studentId) => userById(studentId)?.currentSemester === course.semester);
+    course.instructorIds = lecturerId ? [lecturerId] : [];
+    course.studentIds = [...new Set(studentIds)];
+    data.users
+      .filter((item) => item.role === "student")
+      .forEach((student) => {
+        const enrolled = new Set(student.enrolledCourseIds || []);
+        if (course.studentIds.includes(student.id)) enrolled.add(course.id);
+        else enrolled.delete(course.id);
+        student.enrolledCourseIds = [...enrolled];
+      });
+    addAudit(`Sinkronisasi ${course.code}-${course.className} dengan dosen dan mahasiswa semester ${course.semester}`);
+  }
+
+  if (formName === "user") {
+    data.users.push({
+      id: `u-${Date.now()}`,
+      name: form.get("name"),
+      username: form.get("username"),
+      email: form.get("email"),
+      password: "demo123",
+      role: form.get("role"),
+      status: "active",
+      identity: `NEW-${data.users.length + 1}`,
+      program: "Belum diatur",
+      faculty: "Belum diatur",
+      enrolledCourseIds: [],
+    });
+    addAudit(`Menambah pengguna ${form.get("username")}`);
+  }
+}
+
+document.addEventListener("click", (event) => {
+  const clickedNotificationButton = event.target.closest("#notifButton");
+  const clickedNotificationTray = event.target.closest("#notificationTray");
+  if (!clickedNotificationButton && !clickedNotificationTray) closeNotificationTray();
+
+  const demo = event.target.closest("[data-demo-login]");
+  if (demo) {
+    $("#usernameInput").value = demo.dataset.demoLogin;
+    $("#passwordInput").value = "demo123";
+    $("#loginForm").requestSubmit();
+    return;
+  }
+
+  const nav = event.target.closest("[data-view]");
+  if (nav) {
+    state.activeView = nav.dataset.view;
+    state.editAnnouncementId = null;
+    state.editCalendarEventId = null;
+    state.editAcademicUserId = null;
+    state.editCourseId = null;
+    state.editGradeEntryId = null;
+    state.khsEditMode = false;
+    document.body.classList.remove("nav-open");
+    renderView();
+    return;
+  }
+
+  if (event.target.closest("#menuToggle")) {
+    document.body.classList.toggle("nav-open");
+    return;
+  }
+
+  if (event.target.closest("#logoutButton")) {
+    localStorage.removeItem(CURRENT_USER_KEY);
+    state.currentUserId = null;
+    showLogin();
+    return;
+  }
+
+  if (clickedNotificationButton) {
+    $("#notificationTray").classList.toggle("hidden");
+    return;
+  }
+
+  const actionButton = event.target.closest("[data-action]");
+  if (!actionButton) return;
+  if (["SELECT", "OPTION", "INPUT", "TEXTAREA"].includes(actionButton.tagName)) return;
+  handleAction(actionButton.dataset.action, actionButton.dataset.id, actionButton);
+});
+
+document.addEventListener("change", (event) => {
+  if (event.target.dataset.action === "course-filter") {
+    state.courseFilter = event.target.value;
+    renderView();
+  }
+  if (event.target.dataset.action === "grade-student-filter") {
+    state.gradeStudentId = event.target.value;
+    state.editGradeEntryId = null;
+    state.khsEditMode = false;
+    renderView();
+  }
+  if (event.target.dataset.action === "grade-cohort-filter") {
+    state.gradeCohortFilter = event.target.value;
+    state.gradeStudentId = "";
+    state.editGradeEntryId = null;
+    state.khsEditMode = false;
+    renderView();
+  }
+  if (event.target.dataset.action === "academic-term-filter") {
+    state.academicTermFilter = event.target.value;
+    state.editAcademicUserId = null;
+    state.editCourseId = null;
+    renderView();
+  }
+});
+
+function handleAction(action, id, actionButton) {
+  const user = currentUser();
+  if (action === "toggle-khs-edit-mode") {
+    state.khsEditMode = !state.khsEditMode;
+    if (!state.khsEditMode) state.editGradeEntryId = null;
+    renderView();
+    return;
+  }
+
+  if (action === "academic-tab") {
+    state.academicTab = actionButton?.dataset.tab || "lecturers";
+    state.editAcademicUserId = null;
+    state.editCourseId = null;
+    renderView();
+    return;
+  }
+
+  if (action === "toggle-academic-edit-mode") {
+    const tab = actionButton?.dataset.tab || state.academicTab;
+    state.academicEditMode[tab] = !state.academicEditMode[tab];
+    if (!state.academicEditMode[tab]) {
+      if (tab === "courses") state.editCourseId = null;
+      else state.editAcademicUserId = null;
+    }
+    renderView();
+    return;
+  }
+
+  if (action === "mark-all-read") {
+    data.notifications.forEach((item) => {
+      if (item.userId === user.id) item.read = true;
+    });
+    saveData();
+    renderNotifications();
+    return;
+  }
+
+  if (action === "edit-announcement") {
+    state.editAnnouncementId = id;
+    renderView();
+    return;
+  }
+
+  if (action === "cancel-edit-announcement") {
+    state.editAnnouncementId = null;
+    renderView();
+    return;
+  }
+
+  if (action === "delete-announcement") {
+    const target = data.announcements.find((item) => item.id === id);
+    data.announcements = data.announcements.filter((item) => item.id !== id);
+    removeNotifications("announcement", id);
+    if (state.editAnnouncementId === id) state.editAnnouncementId = null;
+    addAudit(`Menghapus pengumuman ${target?.title || id}`);
+  }
+
+  if (action === "edit-calendar-event") {
+    state.editCalendarEventId = id;
+    renderView();
+    return;
+  }
+
+  if (action === "cancel-edit-calendar-event") {
+    state.editCalendarEventId = null;
+    renderView();
+    return;
+  }
+
+  if (action === "delete-calendar-event") {
+    const target = data.calendarEvents.find((item) => item.id === id);
+    data.calendarEvents = data.calendarEvents.filter((item) => item.id !== id);
+    removeNotifications("calendar", id);
+    if (state.editCalendarEventId === id) state.editCalendarEventId = null;
+    addAudit(`Menghapus agenda kalender ${target?.title || id}`);
+  }
+
+  if (action === "delete-grade-entry") {
+    const target = data.gradeEntries.find((row) => row.id === id);
+    data.gradeEntries = data.gradeEntries.filter((row) => row.id !== id);
+    if (target) renumberGradeEntries(target.studentId);
+    if (state.editGradeEntryId === id) state.editGradeEntryId = null;
+    addAudit(`Menghapus nilai ${target?.code || id}`);
+  }
+
+  if (action === "edit-grade-entry") {
+    const target = data.gradeEntries.find((row) => row.id === id);
+    if (target) {
+      state.gradeStudentId = target.studentId;
+      state.editGradeEntryId = id;
+    }
+    renderView();
+    return;
+  }
+
+  if (action === "cancel-edit-grade-entry") {
+    state.editGradeEntryId = null;
+    renderView();
+    return;
+  }
+
+  if (action === "edit-academic-user") {
+    state.editAcademicUserId = id;
+    renderView();
+    return;
+  }
+
+  if (action === "cancel-edit-academic-user") {
+    state.editAcademicUserId = null;
+    renderView();
+    return;
+  }
+
+  if (action === "delete-academic-user") {
+    const target = data.users.find((item) => item.id === id);
+    if (target && target.id !== user.id) {
+      data.users = data.users.filter((item) => item.id !== id);
+      data.courses.forEach((course) => {
+        course.instructorIds = course.instructorIds.filter((lecturerId) => lecturerId !== id);
+        course.studentIds = course.studentIds.filter((studentId) => studentId !== id);
+      });
+      data.gradeEntries = data.gradeEntries.filter((row) => row.studentId !== id);
+      data.notifications = data.notifications.filter((item) => item.userId !== id);
+      if (state.editAcademicUserId === id) state.editAcademicUserId = null;
+      addAudit(`Menghapus data ${roleNames[target.role]} ${target.name}`);
+    }
+    saveData();
+    renderNotifications();
+    renderView();
+    return;
+  }
+
+  if (action === "edit-course") {
+    state.editCourseId = id;
+    renderView();
+    return;
+  }
+
+  if (action === "cancel-edit-course") {
+    state.editCourseId = null;
+    renderView();
+    return;
+  }
+
+  if (action === "delete-course") {
+    const target = courseById(id);
+    if (target) {
+      data.courses = data.courses.filter((course) => course.id !== id);
+      data.users
+        .filter((item) => item.role === "student")
+        .forEach((student) => {
+          student.enrolledCourseIds = (student.enrolledCourseIds || []).filter((courseId) => courseId !== id);
+        });
+      data.gradeEntries = data.gradeEntries.filter((row) => row.code !== target.code);
+      data.users.filter((item) => item.role === "student").forEach((student) => renumberGradeEntries(student.id));
+      if (state.editCourseId === id) state.editCourseId = null;
+      addAudit(`Menghapus mata kuliah ${target.code}`);
+    }
+  }
+
+  if (action === "delete-letterhead") {
+    data.settings.letterheadDataUrl = "";
+    data.settings.letterheadName = "";
+    data.settings.letterheadType = "";
+    addAudit("Menghapus kop surat KHS");
+  }
+
+  if (action === "access-material") {
+    const material = data.materials.find((item) => item.id === id);
+    if (material && !material.accessedBy.includes(user.id)) material.accessedBy.push(user.id);
+    addAudit(`${user.name} mengakses materi ${material?.title}`);
+  }
+
+  if (action === "submit-assignment") {
+    const assignment = data.assignments.find((item) => item.id === id);
+    data.submissions.push({
+      id: `s-${Date.now()}`,
+      assignmentId: id,
+      studentId: user.id,
+      submittedAt: new Date().toISOString().slice(0, 16),
+      answer: `${user.username}-${assignment.title.toLowerCase().replaceAll(" ", "-")}.pdf`,
+      status: new Date(assignment.deadline) < new Date() ? "late" : "submitted",
+      grade: null,
+      feedback: "",
+    });
+    notifyUsers(courseById(assignment.courseId).instructorIds, "Pengumpulan masuk", assignment.title);
+    addAudit(`${user.name} mengumpulkan tugas ${assignment.title}`);
+  }
+
+  if (action === "grade-submission") {
+    const submission = data.submissions.find((item) => item.id === id);
+    submission.grade = 90;
+    submission.feedback = "Dinilai melalui simulasi gradebook. Struktur jawaban sudah memenuhi kriteria.";
+    notifyUsers([submission.studentId], "Nilai baru", "Feedback tugas sudah diterbitkan.");
+    addAudit(`Memberi nilai submission ${id}`);
+  }
+
+  if (action === "start-quiz") {
+    const quiz = data.quizzes.find((item) => item.id === id);
+    quiz.attempts.push({ studentId: user.id, score: 84, submittedAt: new Date().toISOString().slice(0, 16) });
+    notifyUsers([user.id], "Kuis selesai", `Skor objektif ${quiz.title}: 84`);
+    addAudit(`${user.name} menyelesaikan kuis ${quiz.title}`);
+  }
+
+  if (action === "checkin") {
+    const session = data.attendanceSessions.find((item) => item.id === id);
+    session.records.push({ studentId: user.id, status: "Hadir", note: "Check-in mandiri" });
+    addAudit(`${user.name} melakukan absensi mandiri`);
+  }
+
+  if (action === "toggle-user") {
+    const target = data.users.find((item) => item.id === id);
+    if (target.id !== user.id) {
+      target.status = target.status === "active" ? "inactive" : "active";
+      addAudit(`Mengubah status pengguna ${target.username}`);
+    }
+  }
+
+  if (action === "import-users") {
+    addAudit("Import pengguna dari CSV demo");
+    data.notifications.unshift({ id: `n-${Date.now()}`, userId: user.id, title: "Import selesai", body: "Validasi format CSV berhasil.", read: false });
+  }
+
+  if (action === "sync-academic") {
+    data.integrations[0].lastSync = new Date().toLocaleString("id-ID");
+    data.integrations[0].status = "Tersinkron";
+    addAudit("Sinkronisasi data akademik dari SIAKAD");
+  }
+
+  if (action === "backup") {
+    addAudit("Backup manual");
+    data.notifications.unshift({ id: `n-${Date.now()}`, userId: user.id, title: "Backup berhasil", body: "Snapshot data demo selesai dibuat.", read: false });
+  }
+
+  if (action === "export-report") {
+    const csv = ["kelas,progress,kehadiran", ...data.courses.map((course) => `${course.code}-${course.className},${course.progress},${course.attendanceRate}`)].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "laporan-lms.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    addAudit("Export laporan CSV");
+  }
+
+  if (action === "print-khs") {
+    downloadKhsPdf(actionButton);
+    return;
+  }
+
+  if (action === "create-course") {
+    data.courses.push({
+      id: `c-${Date.now()}`,
+      code: "MK" + (100 + data.courses.length),
+      name: "Mata Kuliah Baru",
+      className: "A",
+      credits: 3,
+      semester: "Ganjil 2026/2027",
+      program: "Belum diatur",
+      schedule: "Belum dijadwalkan",
+      room: "-",
+      instructorIds: data.users.filter((item) => item.role === "lecturer").slice(0, 1).map((item) => item.id),
+      studentIds: [],
+      progress: 0,
+      attendanceRate: 0,
+      status: "active",
+    });
+    addAudit("Membuat kelas baru");
+  }
+
+  saveData();
+  renderNotifications();
+  renderView();
+}
+
+renderDemoAccounts();
+if (currentUser()) showApp();
+else showLogin();

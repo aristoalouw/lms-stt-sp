@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LMS Sekolah Tinggi Teologi Saint Paul Bandung</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main id="loginScreen" class="login-screen">
+      <section class="login-visual" aria-label="Ilustrasi pembelajaran digital">
+        <img src="assets/campus-learning.jpeg" alt="Ilustrasi kampus dan pembelajaran digital" />
+        <div class="login-brand">
+          <span class="brand-mark">SP</span>
+          <div>
+            <strong>LMS STT SP</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="login-panel" aria-labelledby="loginTitle">
+        <p class="eyebrow">Demo LMS</p>
+        <h1 id="loginTitle">Masuk ke ruang belajar</h1>
+        <p class="muted">Gunakan akun demo untuk mencoba dashboard role mahasiswa, dosen, staf akademik, dan administrator.</p>
+
+        <form id="loginForm" class="login-form">
+          <label>
+            Username atau email
+            <input id="usernameInput" name="username" autocomplete="username" placeholder="mahasiswa01" required />
+          </label>
+          <label>
+            Password
+            <input id="passwordInput" name="password" type="password" autocomplete="current-password" placeholder="demo123" required />
+          </label>
+          <button class="primary-button" type="submit">
+            <i data-lucide="log-in"></i>
+            Masuk
+          </button>
+          <p id="loginError" class="form-error" role="alert"></p>
+        </form>
+
+        <div class="demo-grid" id="demoAccounts"></div>
+      </section>
+    </main>
+
+    <div id="appShell" class="app-shell hidden">
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <span class="brand-mark">SP</span>
+          <div>
+            <strong>LMS STT SP</strong>
+            <span id="roleLabel">Role</span>
+          </div>
+        </div>
+        <nav id="sideNav" class="side-nav" aria-label="Navigasi utama"></nav>
+      </aside>
+
+      <div class="app-main">
+        <header class="topbar">
+          <button id="menuToggle" class="icon-button mobile-only" type="button" title="Buka navigasi">
+            <i data-lucide="menu"></i>
+          </button>
+          <div>
+            <p class="eyebrow" id="activeRoleText">Dashboard</p>
+            <h2 id="pageTitle">Dashboard</h2>
+          </div>
+          <div class="topbar-actions">
+            <button id="notifButton" class="icon-button" type="button" title="Notifikasi">
+              <i data-lucide="bell"></i>
+              <span id="notifCount" class="notif-count">0</span>
+            </button>
+            <div id="userChip" class="user-chip"></div>
+            <button id="logoutButton" class="ghost-button" type="button">
+              <i data-lucide="log-out"></i>
+              Keluar
+            </button>
+          </div>
+        </header>
+
+        <section id="notificationTray" class="notification-tray hidden" aria-label="Daftar notifikasi"></section>
+        <section id="content" class="content"></section>
+      </div>
+    </div>
+  </body>
+</html>

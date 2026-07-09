@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=20.19.0 <25"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.19.2",
+    "mongoose": "^9.7.4",
+    "pdf-lib": "^1.17.1"
+  }
+}
