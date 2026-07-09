@@ -333,6 +333,10 @@ function studentCohort(student) {
   return String(student?.tahun_angkatan || inferCohortFromIdentity(student?.identity));
 }
 
+function studentsForCohort(cohort = "all") {
+  return data.users.filter((user) => user.role === "student" && (cohort === "all" || studentCohort(user) === String(cohort)));
+}
+
 function studentCohorts() {
   return [...new Set(data.users.filter((user) => user.role === "student").map(studentCohort))]
     .filter(Boolean)
@@ -1315,8 +1319,9 @@ function khsRowsForStudent(studentId) {
 }
 
 function studentGradeOptions(selected = "", cohort = "all") {
-  return data.users
-    .filter((user) => user.role === "student" && (cohort === "all" || studentCohort(user) === String(cohort)))
+  const students = studentsForCohort(cohort);
+  if (!students.length) return `<option value="">Tidak ada mahasiswa pada angkatan ini</option>`;
+  return students
     .map(
       (student) =>
         `<option value="${student.id}" ${selected === student.id ? "selected" : ""}>${escapeHtml(student.name)} - ${escapeHtml(student.identity)} - Angkatan ${escapeHtml(studentCohort(student))}</option>`,
@@ -1573,7 +1578,7 @@ function renderGrades() {
 
   if (["staff", "admin"].includes(user.role)) {
     const gradeCohort = state.gradeCohortFilter || "all";
-    const gradeStudents = data.users.filter((item) => item.role === "student" && (gradeCohort === "all" || studentCohort(item) === String(gradeCohort)));
+    const gradeStudents = studentsForCohort(gradeCohort);
     const selectedStudentId = gradeStudents.some((student) => student.id === state.gradeStudentId) ? state.gradeStudentId : gradeStudents[0]?.id || "";
     if (state.gradeStudentId !== selectedStudentId) state.gradeStudentId = selectedStudentId;
     const selectedStudent = userById(selectedStudentId);
@@ -1614,7 +1619,7 @@ function renderGrades() {
               <label>Angkatan<select name="gradeCohort" data-action="grade-cohort-filter">
                 ${cohortOptions(gradeCohort)}
               </select></label>
-              <label>Mahasiswa<select name="gradeStudentId" data-action="grade-student-filter">
+              <label>Mahasiswa<select name="gradeStudentId" data-action="grade-view-student-filter">
                 ${studentGradeOptions(selectedStudentId, gradeCohort)}
               </select></label>
             </div>
@@ -1679,7 +1684,7 @@ function renderGrades() {
                 <p class="muted">Bobot otomatis dihitung dari SKS x Nilai.</p>
               </div>
             </div>
-            <label>Mahasiswa<select name="studentId" data-action="grade-student-filter" required ${editingGrade ? "disabled" : ""}>${studentGradeOptions(formStudentId, gradeCohort)}</select></label>
+            <label>Mahasiswa<select name="studentId" data-action="grade-entry-student-filter" required ${editingGrade ? "disabled" : ""}>${studentGradeOptions(formStudentId, gradeCohort)}</select></label>
             ${editingGrade ? `<input name="studentId" type="hidden" value="${escapeHtml(formStudentId)}" />` : ""}
             <label>Mata kuliah<select name="courseId" required>
               ${courseOptionsForStudent(formStudentId, formCourseId)}
@@ -3496,15 +3501,20 @@ document.addEventListener("change", (event) => {
     state.courseFilter = event.target.value;
     renderView();
   }
-  if (event.target.dataset.action === "grade-student-filter") {
+  if (event.target.dataset.action === "grade-view-student-filter") {
     state.gradeStudentId = event.target.value;
     state.editGradeEntryId = null;
     state.khsEditMode = false;
     renderView();
   }
+  if (event.target.dataset.action === "grade-entry-student-filter") {
+    state.gradeStudentId = event.target.value;
+    state.editGradeEntryId = null;
+    renderView();
+  }
   if (event.target.dataset.action === "grade-cohort-filter") {
     state.gradeCohortFilter = event.target.value;
-    state.gradeStudentId = "";
+    state.gradeStudentId = studentsForCohort(state.gradeCohortFilter)[0]?.id || "";
     state.editGradeEntryId = null;
     state.khsEditMode = false;
     renderView();
