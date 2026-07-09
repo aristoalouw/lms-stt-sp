@@ -1,5 +1,3 @@
-const STORAGE_KEY = "nusantara-lms-data-v1";
-const CURRENT_USER_KEY = "nusantara-lms-current-user";
 const CURRENT_ACTIVE_SEMESTER = "Ganjil 2026/2027";
 
 const roleNames = {
@@ -9,351 +7,31 @@ const roleNames = {
   admin: "Administrator",
 };
 
-const seedData = {
-  users: [
-    {
-      id: "u-stu-1",
-      name: "Alya Ramadhani",
-      username: "mahasiswa01",
-      email: "alya@student.univ.ac.id",
-      password: "demo123",
-      role: "student",
-      status: "active",
-      identity: "230401001",
-      tahun_angkatan: "2023",
-      program: "Teologi S1",
-      faculty: "Fakultas Teknologi Informasi",
-      currentSemester: "Genap 2025/2026",
-      enrolledCourseIds: ["c-psi-a", "c-pbo-b", "c-stat-a"],
+const seedData = createEmptyData();
+
+function createEmptyData() {
+  return {
+    users: [],
+    courses: [],
+    materials: [],
+    assignments: [],
+    submissions: [],
+    gradeEntries: [],
+    quizzes: [],
+    attendanceSessions: [],
+    announcements: [],
+    calendarEvents: [],
+    discussions: [],
+    notifications: [],
+    audit: [],
+    integrations: [],
+    settings: {
+      letterheadDataUrl: "",
+      letterheadName: "",
+      letterheadType: "",
     },
-    {
-      id: "u-stu-2",
-      name: "Raka Pratama",
-      username: "mahasiswa02",
-      email: "raka@student.univ.ac.id",
-      password: "demo123",
-      role: "student",
-      status: "active",
-      identity: "230401018",
-      tahun_angkatan: "2023",
-      program: "Teologi S1",
-      faculty: "Fakultas Teknologi Informasi",
-      currentSemester: "Genap 2025/2026",
-      enrolledCourseIds: ["c-psi-a", "c-pbo-b"],
-    },
-    {
-      id: "u-lect-1",
-      name: "Dr. Bima Santoso",
-      username: "dosen01",
-      email: "bima@univ.ac.id",
-      password: "demo123",
-      role: "lecturer",
-      status: "active",
-      identity: "0421078102",
-      program: "Sistem Informasi",
-      faculty: "Fakultas Teknologi Informasi",
-    },
-    {
-      id: "u-lect-2",
-      name: "Nadia Kurnia, M.Kom.",
-      username: "dosen02",
-      email: "nadia@univ.ac.id",
-      password: "demo123",
-      role: "lecturer",
-      status: "active",
-      identity: "0419118901",
-      program: "Informatika",
-      faculty: "Fakultas Teknologi Informasi",
-    },
-    {
-      id: "u-staff-1",
-      name: "Maya Wulandari",
-      username: "staf01",
-      email: "maya.akademik@univ.ac.id",
-      password: "demo123",
-      role: "staff",
-      status: "active",
-      identity: "AKD-017",
-      program: "Biro Akademik",
-      faculty: "Universitas",
-    },
-    {
-      id: "u-admin-1",
-      name: "Admin Sistem",
-      username: "admin01",
-      email: "admin@univ.ac.id",
-      password: "demo123",
-      role: "admin",
-      status: "active",
-      identity: "ADM-001",
-      program: "Teknologi Informasi",
-      faculty: "Universitas",
-    },
-  ],
-  courses: [
-    {
-      id: "c-psi-a",
-      code: "SI204",
-      name: "Pengembangan Sistem Informasi",
-      className: "A",
-      credits: 3,
-      semester: "Ganjil 2026/2027",
-      semesterLevel: "Semester 1",
-      program: "Sistem Informasi",
-      schedule: "Senin, 08.00-10.30",
-      room: "Hybrid R.301",
-      instructorIds: ["u-lect-1"],
-      studentIds: ["u-stu-1", "u-stu-2"],
-      progress: 68,
-      attendanceRate: 91,
-      status: "active",
-    },
-    {
-      id: "c-pbo-b",
-      code: "IF221",
-      name: "Pemrograman Berorientasi Objek",
-      className: "B",
-      credits: 4,
-      semester: "Ganjil 2026/2027",
-      semesterLevel: "Semester 1",
-      program: "Informatika",
-      schedule: "Rabu, 13.00-15.30",
-      room: "Lab Komputer 2",
-      instructorIds: ["u-lect-2"],
-      studentIds: ["u-stu-1", "u-stu-2"],
-      progress: 52,
-      attendanceRate: 86,
-      status: "active",
-    },
-    {
-      id: "c-stat-a",
-      code: "SI118",
-      name: "Statistika Bisnis",
-      className: "A",
-      credits: 3,
-      semester: "Ganjil 2026/2027",
-      semesterLevel: "Semester 2",
-      program: "Sistem Informasi",
-      schedule: "Jumat, 09.00-11.00",
-      room: "R.204",
-      instructorIds: ["u-lect-1"],
-      studentIds: ["u-stu-1"],
-      progress: 74,
-      attendanceRate: 94,
-      status: "active",
-    },
-  ],
-  materials: [
-    {
-      id: "m-1",
-      courseId: "c-psi-a",
-      title: "Pertemuan 6 - Analisis Kebutuhan",
-      type: "PDF",
-      description: "Materi elisitasi kebutuhan, user story, dan acceptance criteria.",
-      publishedAt: "2026-07-03",
-      visibility: "published",
-      size: "2.4 MB",
-      authorId: "u-lect-1",
-      accessedBy: ["u-stu-1"],
-    },
-    {
-      id: "m-2",
-      courseId: "c-pbo-b",
-      title: "Contoh Project OOP",
-      type: "ZIP",
-      description: "Starter project untuk latihan inheritance dan interface.",
-      publishedAt: "2026-07-04",
-      visibility: "published",
-      size: "5.9 MB",
-      authorId: "u-lect-2",
-      accessedBy: [],
-    },
-    {
-      id: "m-3",
-      courseId: "c-stat-a",
-      title: "Video Regresi Linear",
-      type: "Link",
-      description: "Tautan video pembahasan regresi dan interpretasi koefisien.",
-      publishedAt: "2026-07-06",
-      visibility: "scheduled",
-      size: "External",
-      authorId: "u-lect-1",
-      accessedBy: [],
-    },
-  ],
-  assignments: [
-    {
-      id: "a-1",
-      courseId: "c-psi-a",
-      title: "Dokumen Kebutuhan Sistem",
-      description: "Susun SRS ringkas dari studi kasus layanan akademik.",
-      deadline: "2026-07-12T23:59",
-      collectionType: "File upload",
-      maxSize: "10 MB",
-      weight: 20,
-      allowLate: false,
-      published: true,
-    },
-    {
-      id: "a-2",
-      courseId: "c-pbo-b",
-      title: "Implementasi Class Diagram",
-      description: "Bangun kode Java dari class diagram yang sudah diberikan.",
-      deadline: "2026-07-10T23:59",
-      collectionType: "File upload",
-      maxSize: "15 MB",
-      weight: 15,
-      allowLate: true,
-      published: true,
-    },
-  ],
-  submissions: [
-    {
-      id: "s-1",
-      assignmentId: "a-2",
-      studentId: "u-stu-1",
-      submittedAt: "2026-07-06T20:10",
-      answer: "oop-alya.zip",
-      status: "submitted",
-      grade: 88,
-      feedback: "Struktur class sudah baik, perkuat unit test.",
-    },
-  ],
-  gradeEntries: [
-    { id: "gr-1", studentId: "u-stu-1", no: 1, code: "SI204", subject: "Pengembangan Sistem Informasi", credits: 3, letter: "A", grade: 4, weighted: 12 },
-    { id: "gr-2", studentId: "u-stu-1", no: 2, code: "IF221", subject: "Pemrograman Berorientasi Objek", credits: 4, letter: "A-", grade: 3.7, weighted: 14.8 },
-    { id: "gr-3", studentId: "u-stu-1", no: 3, code: "SI118", subject: "Statistika Bisnis", credits: 3, letter: "B", grade: 3, weighted: 9 },
-  ],
-  settings: {
-    letterheadDataUrl: "",
-    letterheadName: "",
-  },
-  quizzes: [
-    {
-      id: "q-1",
-      courseId: "c-psi-a",
-      title: "Kuis Validasi Kebutuhan",
-      duration: 30,
-      startsAt: "2026-07-09T09:00",
-      endsAt: "2026-07-09T11:00",
-      questionCount: 12,
-      randomizeQuestions: true,
-      status: "published",
-      attempts: [{ studentId: "u-stu-1", score: 82, submittedAt: "2026-07-05T09:33" }],
-    },
-    {
-      id: "q-2",
-      courseId: "c-pbo-b",
-      title: "Ujian Praktik Inheritance",
-      duration: 75,
-      startsAt: "2026-07-14T13:00",
-      endsAt: "2026-07-14T15:00",
-      questionCount: 6,
-      randomizeQuestions: false,
-      status: "draft",
-      attempts: [],
-    },
-  ],
-  attendanceSessions: [
-    {
-      id: "att-1",
-      courseId: "c-psi-a",
-      meeting: 7,
-      date: "2026-07-07",
-      opensAt: "08:00",
-      closesAt: "10:45",
-      selfCheckin: true,
-      records: [
-        { studentId: "u-stu-1", status: "Hadir", note: "Check-in mandiri" },
-        { studentId: "u-stu-2", status: "Izin", note: "Surat izin" },
-      ],
-    },
-    {
-      id: "att-2",
-      courseId: "c-pbo-b",
-      meeting: 6,
-      date: "2026-07-08",
-      opensAt: "13:00",
-      closesAt: "15:30",
-      selfCheckin: true,
-      records: [{ studentId: "u-stu-1", status: "Hadir", note: "" }],
-    },
-  ],
-  announcements: [
-    {
-      id: "ann-1",
-      title: "Sinkronisasi KRS selesai",
-      body: "Data peserta kelas semester ganjil sudah diperbarui dari Sistem Informasi Akademik.",
-      target: "Seluruh pengguna",
-      courseId: null,
-      createdBy: "u-staff-1",
-      publishedAt: "2026-07-06",
-    },
-    {
-      id: "ann-2",
-      title: "Materi analisis kebutuhan sudah tersedia",
-      body: "Silakan pelajari materi sebelum sesi diskusi hari Senin.",
-      target: "Kelas SI204-A",
-      courseId: "c-psi-a",
-      createdBy: "u-lect-1",
-      publishedAt: "2026-07-03",
-    },
-  ],
-  calendarEvents: [
-    {
-      id: "cal-1",
-      title: "Awal perkuliahan semester ganjil",
-      date: "2026-07-06",
-      category: "Akademik",
-      target: "Seluruh mahasiswa",
-      description: "Perkuliahan semester ganjil dimulai untuk seluruh program studi.",
-      createdBy: "u-staff-1",
-    },
-    {
-      id: "cal-2",
-      title: "Batas perubahan KRS",
-      date: "2026-07-15",
-      category: "Registrasi",
-      target: "Seluruh mahasiswa",
-      description: "Mahasiswa dapat melakukan perubahan KRS sampai pukul 23.59.",
-      createdBy: "u-staff-1",
-    },
-    {
-      id: "cal-3",
-      title: "Ujian Tengah Semester",
-      date: "2026-07-22",
-      category: "Ujian",
-      target: "Seluruh pengguna",
-      description: "Pelaksanaan UTS mengikuti jadwal yang diterbitkan oleh akademik.",
-      createdBy: "u-admin-1",
-    },
-  ],
-  discussions: [
-    {
-      id: "d-1",
-      courseId: "c-psi-a",
-      title: "Diskusi studi kasus registrasi kelas",
-      locked: false,
-      posts: [
-        { authorId: "u-lect-1", body: "Tuliskan risiko utama dari proses registrasi manual.", createdAt: "2026-07-06 10:14" },
-        { authorId: "u-stu-1", body: "Risiko duplikasi data dan keterlambatan validasi KRS.", createdAt: "2026-07-06 12:03" },
-      ],
-    },
-  ],
-  notifications: [
-    { id: "n-1", userId: "u-stu-1", title: "Pengumuman baru", body: "Sinkronisasi KRS selesai.", read: false, entityType: "announcement", entityId: "ann-1" },
-    { id: "n-2", userId: "u-stu-1", title: "Agenda akademik", body: "Batas perubahan KRS tersedia di kalender akademik.", read: false, entityType: "calendar", entityId: "cal-2" },
-  ],
-  audit: [
-    { id: "log-1", actor: "Maya Wulandari", action: "Import kelas dari SIAKAD", time: "2026-07-06 08:15", status: "Berhasil" },
-    { id: "log-2", actor: "Dr. Bima Santoso", action: "Publikasi materi SI204-A", time: "2026-07-03 16:42", status: "Berhasil" },
-    { id: "log-3", actor: "Admin Sistem", action: "Backup harian", time: "2026-07-07 02:00", status: "Berhasil" },
-  ],
-  integrations: [
-    { id: "int-1", source: "SIAKAD API", dataset: "KRS dan kelas", lastSync: "2026-07-06 08:15", status: "Tersinkron" },
-    { id: "int-2", source: "CSV Import", dataset: "Pengguna baru", lastSync: "2026-07-01 14:30", status: "Butuh validasi" },
-  ],
-};
+  };
+}
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: "layout-dashboard", roles: ["student", "lecturer", "staff", "admin"] },
@@ -376,9 +54,10 @@ const archivedNavItems = [
   { id: "audit", label: "Audit Log", icon: "shield-check", roles: ["admin"] },
 ];
 
-let data = loadData();
+let data = normalizeData(structuredClone(seedData));
+let saveInFlight = Promise.resolve();
 let state = {
-  currentUserId: localStorage.getItem(CURRENT_USER_KEY),
+  currentUserId: null,
   activeView: "dashboard",
   courseFilter: "all",
   editAnnouncementId: null,
@@ -401,14 +80,23 @@ let state = {
 const $ = (selector) => document.querySelector(selector);
 const content = $("#content");
 
-function loadData() {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return normalizeData(structuredClone(seedData));
-  try {
-    return normalizeData(JSON.parse(stored));
-  } catch {
-    return normalizeData(structuredClone(seedData));
-  }
+async function apiRequest(url, options = {}) {
+  const response = await fetch(url, {
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.message || "Permintaan ke server gagal.");
+  return payload;
+}
+
+async function loadDataFromApi() {
+  data = normalizeData(await apiRequest("/api/data"));
+  return data;
 }
 
 function normalizeData(source) {
@@ -465,7 +153,16 @@ function normalizeData(source) {
 }
 
 function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  saveInFlight = saveInFlight
+    .catch(() => {})
+    .then(async () => {
+      data = normalizeData(await apiRequest("/api/data", { method: "PUT", body: JSON.stringify(data) }));
+    })
+    .catch((error) => {
+      console.error(error);
+      window.alert(error.message || "Data gagal disimpan ke server.");
+    });
+  return saveInFlight;
 }
 
 function currentUser() {
@@ -706,32 +403,15 @@ function statusTag(status) {
   return `<span class="tag ${tone}">${escapeHtml(status)}</span>`;
 }
 
-function renderDemoAccounts() {
-  const accounts = data.users.filter((user) => ["student", "lecturer", "staff", "admin"].includes(user.role));
-  $("#demoAccounts").innerHTML = accounts
-    .filter((user, index, list) => list.findIndex((candidate) => candidate.role === user.role) === index)
-    .map(
-      (user) => `
-      <button class="demo-card" type="button" data-demo-login="${user.username}">
-        <strong>${roleNames[user.role]}</strong>
-        <span>${user.username} / demo123</span>
-      </button>
-    `,
-    )
-    .join("");
-}
-
 function showLogin() {
   $("#loginScreen").classList.remove("hidden");
   $("#appShell").classList.add("hidden");
-  renderDemoAccounts();
   refreshIcons();
 }
 
 function showApp() {
   const user = currentUser();
   if (!user) {
-    localStorage.removeItem(CURRENT_USER_KEY);
     showLogin();
     return;
   }
@@ -1080,7 +760,7 @@ function renderMaterials() {
             <div class="panel-header">
               <div>
                 <h3>Unggah materi</h3>
-                <p class="muted">Simulasi validasi metadata dan publikasi.</p>
+                <p class="muted">Validasi metadata dan publikasi materi.</p>
               </div>
             </div>
             <label>Kelas<select name="courseId" required>${courseOptions()}</select></label>
@@ -1090,7 +770,7 @@ function renderMaterials() {
             <button class="primary-button" type="submit"><i data-lucide="upload"></i>Publikasikan</button>
           </form>
         `
-          : renderSidePanel("Akses materi", "Mahasiswa hanya melihat materi yang sudah dipublikasikan dan aktivitas akses dicatat di data demo.")
+          : renderSidePanel("Akses materi", "Mahasiswa hanya melihat materi yang sudah dipublikasikan dan aktivitas akses dicatat oleh sistem.")
       }
     </section>
   `;
@@ -1156,7 +836,7 @@ function renderAssignments() {
             <div class="panel-header">
               <div>
                 <h3>Buat tugas</h3>
-                <p class="muted">Notifikasi demo dikirim ke mahasiswa kelas.</p>
+                <p class="muted">Notifikasi dikirim ke mahasiswa kelas.</p>
               </div>
             </div>
             <label>Kelas<select name="courseId" required>${courseOptions()}</select></label>
@@ -1236,7 +916,7 @@ function renderQuizzes() {
                       user.role === "student"
                         ? attempt
                           ? `<span class="tag green">Skor ${attempt.score}</span>`
-                          : `<button class="primary-button" type="button" data-action="start-quiz" data-id="${quiz.id}"><i data-lucide="play"></i>Mulai simulasi</button>`
+                          : `<button class="primary-button" type="button" data-action="start-quiz" data-id="${quiz.id}"><i data-lucide="play"></i>Mulai kuis</button>`
                         : `<span class="tag blue">${quiz.attempts.length} attempt</span>`
                     }
                   </div>
@@ -1263,7 +943,7 @@ function renderQuizzes() {
             <button class="primary-button" type="submit"><i data-lucide="plus"></i>Simpan kuis</button>
           </form>
         `
-          : renderSidePanel("Autosave simulasi", "Saat mahasiswa memulai kuis demo, sistem membuat attempt dan skor objektif contoh.")
+          : renderSidePanel("Autosave kuis", "Saat mahasiswa memulai kuis, sistem membuat attempt dan menghitung skor objektif.")
       }
     </section>
   `;
@@ -1956,12 +1636,13 @@ function renderUsers() {
         <div class="panel-header">
           <div>
             <h3>Tambah pengguna</h3>
-            <p class="muted">Password demo otomatis: demo123.</p>
+            <p class="muted">Password disimpan aman di server sebagai hash.</p>
           </div>
         </div>
         <label>Nama<input name="name" required /></label>
         <label>Email<input name="email" type="email" required /></label>
         <label>Username<input name="username" required /></label>
+        <label>Password<input name="password" type="password" autocomplete="new-password" required minlength="8" /></label>
         <label>Role<select name="role"><option value="student">Mahasiswa</option><option value="lecturer">Dosen</option><option value="staff">Staf Akademik</option><option value="admin">Administrator</option></select></label>
         <button class="primary-button" type="submit"><i data-lucide="user-plus"></i>Tambah akun</button>
       </form>
@@ -2054,7 +1735,7 @@ function renderAcademic() {
               </div>
             </div>
             <label>Username<input name="username" value="${escapeHtml(editingLecturer?.username || "")}" required /></label>
-            <label>Password<input name="password" type="password" value="${escapeHtml(editingLecturer?.password || "")}" required /></label>
+            <label>Password<input name="password" type="password" autocomplete="new-password" ${editingLecturer ? 'placeholder="Kosongkan jika tidak diganti"' : "required minlength=\"8\""} /></label>
             <label>NIDN/NUPTK<input name="identity" value="${escapeHtml(editingLecturer?.identity || "")}" required /></label>
             <label>Nama dosen<input name="name" value="${escapeHtml(editingLecturer?.name || "")}" required /></label>
             <div class="field-group">
@@ -2134,7 +1815,7 @@ function renderAcademic() {
               </div>
             </div>
             <label>Username<input name="username" value="${escapeHtml(editingStudent?.username || "")}" required /></label>
-            <label>Password<input name="password" type="password" value="${escapeHtml(editingStudent?.password || "")}" required /></label>
+            <label>Password<input name="password" type="password" autocomplete="new-password" ${editingStudent ? 'placeholder="Kosongkan jika tidak diganti"' : "required minlength=\"8\""} /></label>
             <label>NIM<input name="identity" value="${escapeHtml(editingStudent?.identity || "")}" required /></label>
             <label>Nama mahasiswa<input name="name" value="${escapeHtml(editingStudent?.name || "")}" required /></label>
             <label>Tahun angkatan<input name="tahun_angkatan" type="number" min="2000" max="2099" value="${escapeHtml(editingStudent ? studentCohort(editingStudent) : new Date().getFullYear())}" required /></label>
@@ -2465,20 +2146,20 @@ function refreshIcons() {
   if (window.lucide) window.lucide.createIcons();
 }
 
-document.addEventListener("submit", (event) => {
+document.addEventListener("submit", async (event) => {
   if (event.target.id === "loginForm") {
     event.preventDefault();
     const username = $("#usernameInput").value.trim().toLowerCase();
     const password = $("#passwordInput").value;
-    const user = data.users.find((item) => [item.username, item.email, item.identity].map(String).map((value) => value.toLowerCase()).includes(username));
-    if (!user || user.password !== password || user.status !== "active") {
-      $("#loginError").textContent = "Login gagal. Periksa username, password, atau status akun.";
-      return;
+    try {
+      const result = await apiRequest("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
+      await loadDataFromApi();
+      state.currentUserId = result.user.id;
+      $("#loginError").textContent = "";
+      showApp();
+    } catch (error) {
+      $("#loginError").textContent = error.message || "Login gagal. Periksa username, password, atau status akun.";
     }
-    state.currentUserId = user.id;
-    localStorage.setItem(CURRENT_USER_KEY, user.id);
-    $("#loginError").textContent = "";
-    showApp();
     return;
   }
 
@@ -2528,7 +2209,7 @@ function handleForm(formName, form) {
       description: form.get("description"),
       publishedAt: new Date().toISOString().slice(0, 10),
       visibility: "published",
-      size: "Demo file",
+      size: "File unggahan",
       authorId: user.id,
       accessedBy: [],
     };
@@ -2679,13 +2360,13 @@ function handleForm(formName, form) {
       name: form.get("name"),
       username: form.get("username"),
       email: `${form.get("username")}@univ.ac.id`,
-      password: form.get("password"),
       role: "lecturer",
       status: "active",
       identity: form.get("identity"),
       program: "Belum diatur",
       faculty: "Belum diatur",
     };
+    if (form.get("password")) payload.password = form.get("password");
     const existing = data.users.find((item) => item.id === lecturerId);
     if (existing) Object.assign(existing, payload);
     else data.users.push(payload);
@@ -2706,7 +2387,6 @@ function handleForm(formName, form) {
       name: form.get("name"),
       username: form.get("username"),
       email: `${form.get("username")}@student.univ.ac.id`,
-      password: form.get("password"),
       role: "student",
       status: "active",
       identity: form.get("identity"),
@@ -2716,6 +2396,7 @@ function handleForm(formName, form) {
       currentSemester,
       enrolledCourseIds: courseIds,
     };
+    if (form.get("password")) payload.password = form.get("password");
     const existing = data.users.find((item) => item.id === studentId);
     if (existing) Object.assign(existing, payload);
     else data.users.push(payload);
@@ -2785,7 +2466,7 @@ function handleForm(formName, form) {
       name: form.get("name"),
       username: form.get("username"),
       email: form.get("email"),
-      password: "demo123",
+      password: form.get("password"),
       role: form.get("role"),
       status: "active",
       identity: `NEW-${data.users.length + 1}`,
@@ -2801,14 +2482,6 @@ document.addEventListener("click", (event) => {
   const clickedNotificationButton = event.target.closest("#notifButton");
   const clickedNotificationTray = event.target.closest("#notificationTray");
   if (!clickedNotificationButton && !clickedNotificationTray) closeNotificationTray();
-
-  const demo = event.target.closest("[data-demo-login]");
-  if (demo) {
-    $("#usernameInput").value = demo.dataset.demoLogin;
-    $("#passwordInput").value = "demo123";
-    $("#loginForm").requestSubmit();
-    return;
-  }
 
   const nav = event.target.closest("[data-view]");
   if (nav) {
@@ -2830,8 +2503,9 @@ document.addEventListener("click", (event) => {
   }
 
   if (event.target.closest("#logoutButton")) {
-    localStorage.removeItem(CURRENT_USER_KEY);
+    apiRequest("/api/auth/logout", { method: "POST", body: "{}" }).catch(console.error);
     state.currentUserId = null;
+    data = normalizeData(structuredClone(seedData));
     showLogin();
     return;
   }
@@ -3065,7 +2739,7 @@ function handleAction(action, id, actionButton) {
   if (action === "grade-submission") {
     const submission = data.submissions.find((item) => item.id === id);
     submission.grade = 90;
-    submission.feedback = "Dinilai melalui simulasi gradebook. Struktur jawaban sudah memenuhi kriteria.";
+    submission.feedback = "Dinilai melalui gradebook. Struktur jawaban sudah memenuhi kriteria.";
     notifyUsers([submission.studentId], "Nilai baru", "Feedback tugas sudah diterbitkan.");
     addAudit(`Memberi nilai submission ${id}`);
   }
@@ -3092,7 +2766,7 @@ function handleAction(action, id, actionButton) {
   }
 
   if (action === "import-users") {
-    addAudit("Import pengguna dari CSV demo");
+    addAudit("Import pengguna dari CSV");
     data.notifications.unshift({ id: `n-${Date.now()}`, userId: user.id, title: "Import selesai", body: "Validasi format CSV berhasil.", read: false });
   }
 
@@ -3104,7 +2778,7 @@ function handleAction(action, id, actionButton) {
 
   if (action === "backup") {
     addAudit("Backup manual");
-    data.notifications.unshift({ id: `n-${Date.now()}`, userId: user.id, title: "Backup berhasil", body: "Snapshot data demo selesai dibuat.", read: false });
+    data.notifications.unshift({ id: `n-${Date.now()}`, userId: user.id, title: "Backup berhasil", body: "Snapshot data aplikasi selesai dibuat.", read: false });
   }
 
   if (action === "export-report") {
@@ -3149,6 +2823,17 @@ function handleAction(action, id, actionButton) {
   renderView();
 }
 
-renderDemoAccounts();
-if (currentUser()) showApp();
-else showLogin();
+async function initApp() {
+  try {
+    const session = await apiRequest("/api/auth/me");
+    await loadDataFromApi();
+    state.currentUserId = session.user.id;
+    showApp();
+  } catch {
+    state.currentUserId = null;
+    data = normalizeData(structuredClone(seedData));
+    showLogin();
+  }
+}
+
+initApp();

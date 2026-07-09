@@ -11,3 +11,11 @@ services:
         value: production
       - key: PORT
         value: 3000
+      - key: MONGO_URI
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: INITIAL_ADMIN_PASSWORD
+        sync: false
+      - key: INITIAL_USER_PASSWORD
+        sync: false

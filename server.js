@@ -1,19 +1,217 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const path = require("path");
 const { readFile } = require("fs/promises");
 const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
+const initialData = require("./data/initial-data.json");
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const ROOT_DIR = __dirname;
+const SESSION_COOKIE = "lms_session";
+const SESSION_SECRET = process.env.SESSION_SECRET || "replace-this-session-secret";
+const isProduction = process.env.NODE_ENV === "production";
 
-app.use(cors());
-app.use(express.json({ limit: "1mb" }));
-app.use(express.static(ROOT_DIR));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || true,
+    credentials: true,
+  }),
+);
+app.use(express.json({ limit: "10mb" }));
+app.use(cookieParser());
+app.use("/assets", express.static(path.join(ROOT_DIR, "assets")));
+
+app.get(["/", "/index.html"], (_req, res) => {
+  res.sendFile(path.join(ROOT_DIR, "index.html"));
+});
+
+app.get("/app.js", (_req, res) => {
+  res.sendFile(path.join(ROOT_DIR, "app.js"));
+});
+
+app.get("/styles.css", (_req, res) => {
+  res.sendFile(path.join(ROOT_DIR, "styles.css"));
+});
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
+});
+
+const userSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, unique: true, index: true },
+    username: { type: String, required: true, unique: true, index: true },
+    email: { type: String, index: true },
+    identity: { type: String, index: true },
+    role: { type: String, required: true, enum: ["student", "lecturer", "staff", "admin"] },
+    status: { type: String, default: "active" },
+    passwordHash: { type: String, required: true },
+  },
+  { strict: false, timestamps: true },
+);
+
+const appDataSchema = new mongoose.Schema(
+  {
+    key: { type: String, required: true, unique: true },
+    data: { type: mongoose.Schema.Types.Mixed, required: true },
+  },
+  { timestamps: true },
+);
+
+const User = mongoose.model("User", userSchema);
+const AppData = mongoose.model("AppData", appDataSchema);
+
+function stripSensitive(value) {
+  if (Array.isArray(value)) return value.map(stripSensitive);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !["password", "passwordHash", "_id", "__v"].includes(key))
+      .map(([key, item]) => [key, stripSensitive(item)]),
+  );
+}
+
+function sanitizeUser(user) {
+  return stripSensitive(typeof user.toObject === "function" ? user.toObject() : user);
+}
+
+function getCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isProduction,
+    maxAge: 1000 * 60 * 60 * 8,
+  };
+}
+
+function createToken(user) {
+  return jwt.sign({ sub: user.id, role: user.role }, SESSION_SECRET, { expiresIn: "8h" });
+}
+
+async function requireAuth(req, res, next) {
+  try {
+    const token = req.cookies?.[SESSION_COOKIE];
+    if (!token) return res.status(401).json({ message: "Sesi login tidak ditemukan." });
+    const payload = jwt.verify(token, SESSION_SECRET);
+    const user = await User.findOne({ id: payload.sub, status: "active" });
+    if (!user) return res.status(401).json({ message: "Sesi login tidak valid." });
+    req.user = user;
+    next();
+  } catch {
+    res.clearCookie(SESSION_COOKIE, getCookieOptions());
+    return res.status(401).json({ message: "Sesi login tidak valid atau sudah berakhir." });
+  }
+}
+
+async function requireDatabase(req, res, next) {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ message: "Database belum terhubung. Periksa MONGO_URI di environment hosting." });
+  }
+  next();
+}
+
+function withoutUsers(payload) {
+  const copy = stripSensitive(payload || {});
+  delete copy.users;
+  return copy;
+}
+
+async function loadAppData() {
+  const [record, users] = await Promise.all([AppData.findOne({ key: "main" }), User.find({}).sort({ role: 1, name: 1 })]);
+  return {
+    ...(record?.data || withoutUsers(initialData)),
+    users: users.map(sanitizeUser),
+  };
+}
+
+async function syncUsers(incomingUsers = []) {
+  const ids = [];
+  for (const incoming of incomingUsers) {
+    if (!incoming?.id || !incoming?.username || !incoming?.role) continue;
+    ids.push(incoming.id);
+    const password = String(incoming.password || "");
+    const update = stripSensitive(incoming);
+    if (password) update.passwordHash = await bcrypt.hash(password, 12);
+    const existing = await User.findOne({ id: incoming.id });
+    if (!existing && !update.passwordHash) {
+      update.passwordHash = await bcrypt.hash(process.env.INITIAL_USER_PASSWORD || "ChangeMe123!", 12);
+    }
+    await User.findOneAndUpdate({ id: incoming.id }, update, { upsert: true, new: true, setDefaultsOnInsert: true });
+  }
+  if (ids.length) await User.deleteMany({ id: { $nin: ids } });
+}
+
+async function ensureInitialData() {
+  const userCount = await User.countDocuments();
+  if (userCount === 0) {
+    const defaultUserPassword = process.env.INITIAL_USER_PASSWORD || "ChangeMe123!";
+    const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || defaultUserPassword;
+    for (const user of initialData.users || []) {
+      const password = user.role === "admin" ? adminPassword : defaultUserPassword;
+      await User.create({
+        ...stripSensitive(user),
+        passwordHash: await bcrypt.hash(password, 12),
+      });
+    }
+  }
+
+  await AppData.findOneAndUpdate(
+    { key: "main" },
+    { $setOnInsert: { key: "main", data: withoutUsers(initialData) } },
+    { upsert: true, new: true },
+  );
+}
+
+async function connectDatabase() {
+  if (!process.env.MONGO_URI) {
+    console.warn("MONGO_URI belum diatur. API auth/data akan mengembalikan 503 sampai database dikonfigurasi.");
+    return;
+  }
+  await mongoose.connect(process.env.MONGO_URI);
+  await ensureInitialData();
+}
+
+app.post("/api/auth/login", requireDatabase, async (req, res) => {
+  const identifier = String(req.body?.username || "").trim().toLowerCase();
+  const password = String(req.body?.password || "");
+  const user = await User.findOne({
+    status: "active",
+    $or: [{ username: identifier }, { email: identifier }, { identity: identifier }],
+  });
+
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    return res.status(401).json({ message: "Login gagal. Periksa username, email, NIM/NIDN, password, atau status akun." });
+  }
+
+  res.cookie(SESSION_COOKIE, createToken(user), getCookieOptions());
+  res.json({ user: sanitizeUser(user) });
+});
+
+app.post("/api/auth/logout", (_req, res) => {
+  res.clearCookie(SESSION_COOKIE, getCookieOptions());
+  res.json({ ok: true });
+});
+
+app.get("/api/auth/me", requireDatabase, requireAuth, (req, res) => {
+  res.json({ user: sanitizeUser(req.user) });
+});
+
+app.get("/api/data", requireDatabase, requireAuth, async (_req, res) => {
+  res.json(await loadAppData());
+});
+
+app.put("/api/data", requireDatabase, requireAuth, async (req, res) => {
+  if (!req.body || typeof req.body !== "object") return res.status(400).json({ message: "Payload data tidak valid." });
+  await syncUsers(req.body.users || []);
+  await AppData.findOneAndUpdate({ key: "main" }, { key: "main", data: withoutUsers(req.body) }, { upsert: true, new: true });
+  res.json(await loadAppData());
 });
 
 function roundTwo(value) {
@@ -182,7 +380,7 @@ async function renderKhsPdf(payload) {
   return Buffer.from(await pdfDoc.save());
 }
 
-app.post("/api/cetak-khs", async (req, res) => {
+app.post("/api/cetak-khs", requireDatabase, requireAuth, async (req, res) => {
   try {
     const pdfBuffer = await renderKhsPdf(req.body);
     const nim = safeFilename(req.body?.mahasiswa?.nim);
