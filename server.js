@@ -429,15 +429,28 @@ function roundTwo(value) {
 }
 
 function calculateKhs(mataKuliah = []) {
+  const nilaiMap = {
+    A: 4.0,
+    "A-": 3.7,
+    "B+": 3.3,
+    B: 3.0,
+    "B-": 2.7,
+    "C+": 2.4,
+    C: 2.0,
+    "C-": 1.7,
+    D: 1.0,
+    E: 0.0,
+  };
   const rows = mataKuliah.map((item, index) => {
     const sks = Number(item.sks || 0);
-    const bobotAngka = Number(item.bobot_angka || 0);
+    const nilaiHuruf = String(item.nilai_huruf || "").toUpperCase();
+    const bobotAngka = nilaiMap[nilaiHuruf] ?? 0;
     return {
       no: index + 1,
       kode: String(item.kode || ""),
       nama_mk: String(item.nama_mk || ""),
       sks,
-      nilai_huruf: String(item.nilai_huruf || ""),
+      nilai_huruf: nilaiHuruf,
       bobot_angka: bobotAngka,
       sks_x_nilai: roundTwo(sks * bobotAngka),
     };
@@ -675,7 +688,7 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
   });
   drawText(page, "No", columns.no, y, boldFont, 8.5);
   drawText(page, "Kode", columns.kode, y, boldFont, 8.5);
-  drawText(page, "Nama MK", columns.nama, y, boldFont, 8.5);
+  drawText(page, "Mata Kuliah", columns.nama, y, boldFont, 8.5);
   drawText(page, "SKS", columns.sks, y, boldFont, 8.5);
   drawText(page, "Nilai", columns.nilai, y, boldFont, 8.5);
   drawText(page, "SKS x Nilai", columns.jumlah, y, boldFont, 8.5);

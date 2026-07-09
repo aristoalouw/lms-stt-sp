@@ -18,7 +18,7 @@ const roleNames = {
 };
 
 const gradeLetterWeights = {
-  A: 3.8,
+  A: 4.0,
   "A-": 3.7,
   "B+": 3.3,
   B: 3.0,
@@ -26,7 +26,7 @@ const gradeLetterWeights = {
   "C+": 2.4,
   C: 2.0,
   "C-": 1.7,
-  D: 1.3,
+  D: 1.0,
   E: 0.0,
 };
 
@@ -43,7 +43,10 @@ function gradeWeightFromLetter(letter, directWeight) {
 
 function gradeLetterFromWeight(weight) {
   const target = Number(weight);
-  return Object.entries(gradeLetterWeights).find(([, value]) => value === target)?.[0] || "E";
+  if (!Number.isFinite(target)) return "E";
+  const exact = Object.entries(gradeLetterWeights).find(([, value]) => Math.abs(value - target) < 0.001);
+  if (exact) return exact[0];
+  return Object.entries(gradeLetterWeights).reduce((best, current) => (Math.abs(current[1] - target) < Math.abs(best[1] - target) ? current : best))[0];
 }
 
 const seedData = createEmptyData();
@@ -105,6 +108,7 @@ let state = {
   academicTab: "lecturers",
   editAcademicUserId: null,
   editCourseId: null,
+  academicStudentCohortFilter: "all",
   academicEditMode: {
     lecturers: false,
     students: false,
@@ -1201,16 +1205,29 @@ function formatKhsDecimal(value, useComma = false) {
 }
 
 function calculateKhs(courseList) {
+  const nilaiMap = {
+    A: 4.0,
+    "A-": 3.7,
+    "B+": 3.3,
+    B: 3.0,
+    "B-": 2.7,
+    "C+": 2.4,
+    C: 2.0,
+    "C-": 1.7,
+    D: 1.0,
+    E: 0.0,
+  };
   const rows = courseList.map((item, index) => {
     const credits = Number(item.sks ?? item.credits ?? 0);
-    const grade = gradeWeightFromLetter(item.nilai_huruf ?? item.letter, item.bobot_angka ?? item.grade);
+    const nilaiHuruf = String(item.nilai_huruf ?? item.letter ?? "").toUpperCase();
+    const grade = nilaiMap[nilaiHuruf] ?? 0;
     const weighted = roundTwo(credits * grade);
     return {
       no: Number(item.no || index + 1),
       kode: item.kode ?? item.code ?? "",
       mata_kuliah: item.mata_kuliah ?? item.subject ?? "",
       sks: credits,
-      nilai_huruf: item.nilai_huruf ?? item.letter ?? "",
+      nilai_huruf: nilaiHuruf,
       bobot_angka: grade,
       sks_x_nilai: weighted,
     };
@@ -1360,6 +1377,8 @@ function renderGrades() {
     const formCourse = editingGrade ? data.courses.find((course) => course.code === editingGrade.code) : null;
     const studentCourses = coursesForStudent(formStudentId);
     const formCourseId = formCourse?.id || studentCourses[0]?.id || "";
+    const formGrade = Number(editingGrade?.grade ?? gradeWeightFromLetter(editingGrade?.letter || "A"));
+    const formLetter = editingGrade?.letter || gradeLetterFromWeight(formGrade);
     const selectedKhs = calculateKhs(
       rows.map((row) => ({
         no: row.no,
@@ -1457,8 +1476,8 @@ function renderGrades() {
             <label>Mata kuliah<select name="courseId" required>
               ${courseOptionsForStudent(formStudentId, formCourseId)}
             </select></label>
-            <label>Nilai huruf<select name="letter" required>${gradeLetterOptions(editingGrade?.letter || "A")}</select></label>
-            <label>Bobot angka otomatis<input type="text" value="${gradeWeightFromLetter(editingGrade?.letter || "A").toFixed(1)} sesuai nilai huruf" readonly /></label>
+            <label>Bobot angka<input name="grade" data-action="grade-weight-input" type="number" min="0" max="4" step="0.01" value="${Number.isFinite(formGrade) ? formGrade : 4}" required /></label>
+            <label>Nilai huruf<select name="letter" data-action="grade-letter-input" required>${gradeLetterOptions(formLetter)}</select></label>
             <div class="form-actions">
               <button class="primary-button" type="submit" ${studentCourses.length || editingGrade ? "" : "disabled"}><i data-lucide="save"></i>${editingGrade ? "Simpan perubahan" : "Simpan nilai"}</button>
               ${editingGrade ? `<button class="subtle-button" type="button" data-action="cancel-edit-grade-entry"><i data-lucide="x"></i>Batal</button>` : ""}
@@ -1965,7 +1984,9 @@ function renderCourseSemesterPanels(courseGroups) {
 function renderAcademic() {
   const lecturers = data.users.filter((user) => user.role === "lecturer");
   const students = data.users.filter((user) => user.role === "student");
-  const studentGroups = groupStudentsByCohort(students);
+  const academicStudentCohort = state.academicStudentCohortFilter || "all";
+  const visibleStudents = students.filter((student) => academicStudentCohort === "all" || studentCohort(student) === String(academicStudentCohort));
+  const studentGroups = groupStudentsByCohort(visibleStudents);
   const activeTab = state.academicTab;
   const visibleCourses = data.courses.filter((course) => course.semester === CURRENT_ACTIVE_SEMESTER);
   const courseGroups = groupCoursesBySemesterLevel(visibleCourses);
@@ -2071,6 +2092,13 @@ function renderAcademic() {
                 <p class="muted">Mahasiswa disinkronkan dengan semester berjalan dan mata kuliah yang diambil.</p>
               </div>
               ${academicEditButton("students")}
+            </div>
+            <div class="toolbar compact-toolbar">
+              <div class="filters">
+                <label>Angkatan<select name="academicStudentCohort" data-action="academic-student-cohort-filter">
+                  ${cohortOptions(academicStudentCohort)}
+                </select></label>
+              </div>
             </div>
             <table class="data-table">
               <thead><tr><th>Nama</th><th>NIM</th><th>Username</th><th>Prodi</th><th>Tahun Angkatan</th><th>Semester berjalan</th><th>Mata kuliah</th><th>Aksi</th></tr></thead>
@@ -2696,8 +2724,8 @@ function handleForm(formName, form) {
       return;
     }
     const credits = Number(course?.credits || 0);
-    const letter = form.get("letter");
-    const grade = gradeWeightFromLetter(letter, form.get("grade"));
+    const grade = roundTwo(Number(form.get("grade") || 0));
+    const letter = form.get("letter") || gradeLetterFromWeight(grade);
     const studentId = form.get("studentId");
     const target = state.editGradeEntryId ? data.gradeEntries.find((row) => row.id === state.editGradeEntryId) : null;
     const existingForCourse = data.gradeEntries.find((row) => row.studentId === studentId && row.code === course?.code && row.id !== target?.id);
@@ -2891,6 +2919,12 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("change", (event) => {
+  if (event.target.dataset.action === "grade-letter-input") {
+    const form = event.target.closest('form[data-form="grade-entry"]');
+    const gradeInput = form?.querySelector('[name="grade"]');
+    if (gradeInput) gradeInput.value = gradeWeightFromLetter(event.target.value).toFixed(1);
+    return;
+  }
   if (event.target.dataset.action === "course-filter") {
     state.courseFilter = event.target.value;
     renderView();
@@ -2908,6 +2942,18 @@ document.addEventListener("change", (event) => {
     state.khsEditMode = false;
     renderView();
   }
+  if (event.target.dataset.action === "academic-student-cohort-filter") {
+    state.academicStudentCohortFilter = event.target.value;
+    state.editAcademicUserId = null;
+    renderView();
+  }
+});
+
+document.addEventListener("input", (event) => {
+  if (event.target.dataset.action !== "grade-weight-input") return;
+  const form = event.target.closest('form[data-form="grade-entry"]');
+  const letterSelect = form?.querySelector('[name="letter"]');
+  if (letterSelect) letterSelect.value = gradeLetterFromWeight(event.target.value);
 });
 
 function handleAction(action, id, actionButton) {
