@@ -580,9 +580,15 @@ app.post("/api/cetak-khs", requireDatabase, requireAuth, async (req, res) => {
 const shouldListen = require.main === module || process.env.PASSENGER_APP_ENV || process.env.PASSENGER_BASE_URI || process.env.NODE_ENV === "production";
 
 if (shouldListen) {
-  app.listen(PORT, () => {
-    console.log(`LMS server berjalan di http://127.0.0.1:${PORT}`);
-  });
+  connectDatabase()
+    .catch((error) => {
+      console.error("Gagal menghubungkan database:", error);
+    })
+    .finally(() => {
+      app.listen(PORT, () => {
+        console.log(`LMS server berjalan di http://127.0.0.1:${PORT}`);
+      });
+    });
 }
 
 module.exports = { app, calculateKhs, renderKhsPdf };
