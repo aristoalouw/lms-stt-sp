@@ -78,3 +78,47 @@ Segera ubah password dan data akun lewat menu admin setelah login pertama.
 - Admin/staf dapat mengelola dosen, mahasiswa, mata kuliah, nilai, pengumuman, dan kalender akademik.
 - Endpoint `POST /api/cetak-khs` membuat PDF KHS server-side dengan Express dan `pdf-lib`.
 - Data aplikasi disimpan di database backend, bukan `localStorage`.
+
+## API Pengaturan PDF KHS
+
+Admin dapat membaca dan memperbarui konfigurasi PDF KHS melalui:
+
+```text
+GET  /api/admin/settings
+POST /api/admin/update-settings
+```
+
+Contoh payload `POST /api/admin/update-settings`:
+
+```json
+{
+  "header": {
+    "title": "SEKOLAH TINGGI TEOLOGI SAINT PAUL BANDUNG",
+    "titleFontSize": 15,
+    "titleColor": "#003b7a",
+    "bodyFontSize": 10,
+    "bodyColor": "#47515c",
+    "lines": [
+      "Ijin Institusi: No. ...",
+      "Akreditasi: ...",
+      "Alamat: ...",
+      "Email: admin@sttsaintpaul.ac.id / Website: www.sttsaintpaul.ac.id"
+    ]
+  },
+  "signature": {
+    "title": "Kepala Program Studi",
+    "program": "Teologi S1",
+    "name": "Nama Dosen, M.Th.",
+    "identifierLabel": "NUPTK",
+    "identifier": "1234567890123456",
+    "fontSize": 9,
+    "color": "#000000"
+  },
+  "assets": {
+    "logoDataUrl": "data:image/png;base64,...",
+    "signatureDataUrl": "data:image/png;base64,..."
+  }
+}
+```
+
+Nilai warna dapat memakai hex (`#003b7a`), array RGB (`[0, 59, 122]`), atau objek RGB (`{"r":0,"g":59,"b":122}`). Aset gambar dapat berupa PNG atau JPG dalam format data URL base64.

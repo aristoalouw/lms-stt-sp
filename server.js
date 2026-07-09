@@ -26,7 +26,7 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "20mb" }));
 app.use(cookieParser());
 app.use("/assets", express.static(path.join(ROOT_DIR, "assets")));
 
@@ -131,6 +131,11 @@ async function requireDatabase(req, res, next) {
   if (!isDatabaseReady()) {
     return res.status(503).json({ message: "Database belum terhubung. Periksa DATABASE_URL/MYSQL_* atau MONGO_URI di environment hosting." });
   }
+  next();
+}
+
+function requireAdmin(req, res, next) {
+  if (req.user?.role !== "admin") return res.status(403).json({ message: "Hanya admin yang dapat mengubah pengaturan PDF KHS." });
   next();
 }
 
@@ -339,27 +344,35 @@ async function deleteUsersNotIn(ids) {
 }
 
 async function loadStoredAppData() {
-  if (database.driver === "mysql") {
-    const [rows] = await database.mysqlPool.execute("SELECT data FROM lms_app_data WHERE data_key = 'main' LIMIT 1");
-    return rows[0] ? parseJson(rows[0].data, null) : null;
-  }
-  const record = await MongoAppData.findOne({ key: "main" });
-  return record?.data || null;
+  return loadStoredConfig("main");
 }
 
 async function saveStoredAppData(payload) {
+  return saveStoredConfig("main", payload);
+}
+
+async function loadStoredConfig(key) {
+  if (database.driver === "mysql") {
+    const [rows] = await database.mysqlPool.execute("SELECT data FROM lms_app_data WHERE data_key = ? LIMIT 1", [key]);
+    return rows[0] ? parseJson(rows[0].data, null) : null;
+  }
+  const record = await MongoAppData.findOne({ key });
+  return record?.data || null;
+}
+
+async function saveStoredConfig(key, payload) {
   if (database.driver === "mysql") {
     await database.mysqlPool.execute(
       `
         INSERT INTO lms_app_data (data_key, data)
-        VALUES ('main', ?)
+        VALUES (?, ?)
         ON DUPLICATE KEY UPDATE data = VALUES(data)
       `,
-      [JSON.stringify(payload)],
+      [key, JSON.stringify(payload)],
     );
     return;
   }
-  await MongoAppData.findOneAndUpdate({ key: "main" }, { key: "main", data: payload }, { upsert: true, new: true });
+  await MongoAppData.findOneAndUpdate({ key }, { key, data: payload }, { upsert: true, new: true });
 }
 
 app.post("/api/auth/login", requireDatabase, async (req, res) => {
@@ -393,6 +406,22 @@ app.put("/api/data", requireDatabase, requireAuth, async (req, res) => {
   await syncUsers(req.body.users || []);
   await saveStoredAppData(withoutUsers(req.body));
   res.json(await loadAppData());
+});
+
+app.get("/api/admin/settings", requireDatabase, requireAuth, requireAdmin, async (_req, res) => {
+  res.json({ settings: await loadKhsPdfSettings() });
+});
+
+app.post("/api/admin/update-settings", requireDatabase, requireAuth, requireAdmin, async (req, res) => {
+  if (!req.body || typeof req.body !== "object") return res.status(400).json({ message: "Payload pengaturan tidak valid." });
+  const current = await loadKhsPdfSettings();
+  const next = normalizePdfSettings(deepMerge(current, req.body));
+  await saveStoredConfig("pdf_settings", next);
+  res.json({
+    ok: true,
+    message: "Pengaturan PDF KHS berhasil disimpan.",
+    settings: next,
+  });
 });
 
 function roundTwo(value) {
@@ -447,15 +476,139 @@ function safeFilename(value) {
   return String(value || "mahasiswa").replace(/[^a-zA-Z0-9_-]/g, "_");
 }
 
-async function renderKhsPdf(payload) {
+const DEFAULT_KHS_PDF_SETTINGS = {
+  header: {
+    title: "SEKOLAH TINGGI TEOLOGI SAINT PAUL BANDUNG",
+    titleFontSize: 15,
+    titleColor: "#003b7a",
+    bodyFontSize: 10,
+    bodyColor: "#47515c",
+    lineGap: 9,
+    logo: {
+      x: 46,
+      yOffset: 48,
+      width: 42,
+      height: 42,
+    },
+    lines: [
+      "Terdaftar di Departemen Agama RI - Ijin Dirjen Bimas Kristen",
+      "Ijin Institusi: No. DJ/III/HK.05//217/2014",
+      "Ijin Perpanjangan Prodi Teologi: No. 574 Tahun 2018",
+      "Terakreditasi BAN-PT",
+      "Institusi: 92/SK/BAN-PT/Ak-PKP/PT/II/2022",
+      "Prodi Teologi S1: 837/SK/BAN-PT/Ak-PKP/S/II/2022",
+      "Kampus 1: Jl. Purbasari No. 3 - Cimahi (022) 665 0982",
+      "Kampus 2: Jl. Baranangsiang No. 8 ITC Kosambi - Bandung (022) 422 2120",
+      "Email: admin@sttsaintpaul.ac.id / Website: www.sttsaintpaul.ac.id",
+    ],
+  },
+  signature: {
+    location: "Bandung",
+    datePrefix: "",
+    title: "Kepala Program Studi",
+    program: "Teologi S1",
+    name: "Fenius Gulo, M.Th.",
+    identifierLabel: "NUPTK",
+    identifier: "1234567890123456",
+    fontSize: 9,
+    nameFontSize: 9,
+    identifierFontSize: 8.5,
+    color: "#000000",
+    image: {
+      width: 120,
+      height: 45,
+      xOffset: 18,
+      yOffset: 4,
+    },
+  },
+  assets: {
+    logoDataUrl: "",
+    signatureDataUrl: "",
+  },
+};
+
+function deepMerge(base, override) {
+  if (Array.isArray(base) || Array.isArray(override)) return override === undefined ? base : override;
+  if (!base || typeof base !== "object" || !override || typeof override !== "object") return override === undefined ? base : override;
+  const result = { ...base };
+  Object.entries(override).forEach(([key, value]) => {
+    result[key] = deepMerge(base[key], value);
+  });
+  return result;
+}
+
+function parsePdfColor(value, fallback = rgb(0, 0, 0)) {
+  if (Array.isArray(value) && value.length >= 3) {
+    return rgb(Number(value[0]) / 255, Number(value[1]) / 255, Number(value[2]) / 255);
+  }
+  if (value && typeof value === "object") {
+    const scale = Math.max(Number(value.r || 0), Number(value.g || 0), Number(value.b || 0)) > 1 ? 255 : 1;
+    return rgb(Number(value.r || 0) / scale, Number(value.g || 0) / scale, Number(value.b || 0) / scale);
+  }
+  const hex = String(value || "").trim().replace(/^#/, "");
+  if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+    return rgb(parseInt(hex.slice(0, 2), 16) / 255, parseInt(hex.slice(2, 4), 16) / 255, parseInt(hex.slice(4, 6), 16) / 255);
+  }
+  return fallback;
+}
+
+function normalizeDataUrl(dataUrl) {
+  const match = String(dataUrl || "").match(/^data:(image\/png|image\/jpe?g);base64,([a-zA-Z0-9+/=]+)$/);
+  if (!match) return null;
+  return {
+    mime: match[1],
+    bytes: Buffer.from(match[2], "base64"),
+  };
+}
+
+async function embedConfiguredImage(pdfDoc, dataUrl, fallbackPath) {
+  let imageSource = normalizeDataUrl(dataUrl);
+  if (!imageSource && fallbackPath) {
+    try {
+      const bytes = await readFile(fallbackPath);
+      imageSource = { mime: fallbackPath.toLowerCase().endsWith(".jpg") || fallbackPath.toLowerCase().endsWith(".jpeg") ? "image/jpeg" : "image/png", bytes };
+    } catch {
+      return null;
+    }
+  }
+  if (!imageSource) return null;
+  return imageSource.mime.includes("jpeg") ? pdfDoc.embedJpg(imageSource.bytes) : pdfDoc.embedPng(imageSource.bytes);
+}
+
+function normalizePdfSettings(input = {}) {
+  const aliases = { ...input };
+  aliases.assets = {
+    ...(input.assets || {}),
+    logoDataUrl: input.assets?.logoDataUrl || input.logoDataUrl || input.logoImageDataUrl || "",
+    signatureDataUrl: input.assets?.signatureDataUrl || input.signatureDataUrl || input.ttdDataUrl || input.signatureImageDataUrl || "",
+  };
+  const merged = deepMerge(DEFAULT_KHS_PDF_SETTINGS, aliases);
+  merged.header.lines = Array.isArray(merged.header.lines) ? merged.header.lines.map((line) => (typeof line === "string" ? line : line?.text || "")).filter(Boolean) : [];
+  merged.header.titleFontSize = Number(merged.header.titleFontSize || DEFAULT_KHS_PDF_SETTINGS.header.titleFontSize);
+  merged.header.bodyFontSize = Number(merged.header.bodyFontSize || DEFAULT_KHS_PDF_SETTINGS.header.bodyFontSize);
+  merged.header.lineGap = Number(merged.header.lineGap || DEFAULT_KHS_PDF_SETTINGS.header.lineGap);
+  merged.signature.fontSize = Number(merged.signature.fontSize || DEFAULT_KHS_PDF_SETTINGS.signature.fontSize);
+  merged.signature.nameFontSize = Number(merged.signature.nameFontSize || DEFAULT_KHS_PDF_SETTINGS.signature.nameFontSize);
+  merged.signature.identifierFontSize = Number(merged.signature.identifierFontSize || DEFAULT_KHS_PDF_SETTINGS.signature.identifierFontSize);
+  return merged;
+}
+
+async function loadKhsPdfSettings() {
+  return normalizePdfSettings((await loadStoredConfig("pdf_settings")) || {});
+}
+
+async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
   assertPayload(payload);
+  const settings = normalizePdfSettings(pdfSettings);
 
   const templatePath = path.join(ROOT_DIR, "PDF", "Template_KHS_Kosong.pdf");
   const logoPath = path.join(ROOT_DIR, "PDF", "Logo_STT.png");
-  const [templateBytes, logoBytes] = await Promise.all([readFile(templatePath), readFile(logoPath)]);
+  const signaturePath = path.join(ROOT_DIR, "PDF", "TTD.png");
+  const templateBytes = await readFile(templatePath);
 
   const pdfDoc = await PDFDocument.load(templateBytes);
-  const logoImage = await pdfDoc.embedPng(logoBytes);
+  const logoImage = await embedConfiguredImage(pdfDoc, settings.assets.logoDataUrl, logoPath);
+  const signatureImage = await embedConfiguredImage(pdfDoc, settings.assets.signatureDataUrl, signaturePath);
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const page = pdfDoc.getPages()[0] || pdfDoc.addPage();
@@ -465,34 +618,38 @@ async function renderKhsPdf(payload) {
   const marginX = 46;
   const topY = height - 44;
   const dark = rgb(0.09, 0.12, 0.16);
-  const muted = rgb(0.28, 0.32, 0.36);
+  const headerTitleColor = parsePdfColor(settings.header.titleColor, dark);
+  const headerBodyColor = parsePdfColor(settings.header.bodyColor, rgb(0.28, 0.32, 0.36));
+  const signatureColor = parsePdfColor(settings.signature.color, rgb(0, 0, 0));
 
-  page.drawImage(logoImage, {
-    x: marginX,
-    y: topY - 48,
-    width: 42,
-    height: 42,
-  });
+  if (logoImage) {
+    page.drawImage(logoImage, {
+      x: Number(settings.header.logo?.x || marginX),
+      y: topY - Number(settings.header.logo?.yOffset || 48),
+      width: Number(settings.header.logo?.width || 42),
+      height: Number(settings.header.logo?.height || 42),
+    });
+  }
 
   const kopX = marginX + 52;
   let kopY = topY - 3;
-  drawText(page, "SEKOLAH TINGGI TEOLOGI SAINT PAUL BANDUNG", kopX, kopY, boldFont, 7.5, { color: dark });
-  kopY -= 9;
-  drawText(page, "Jl. Cihanjuang KM. 2.5 No. 1, Bandung Barat", kopX, kopY, font, 7.5, { color: muted });
-  kopY -= 9;
-  drawText(page, "Telp. (022) 123456 | Email: akademik@sttsp.ac.id", kopX, kopY, font, 7.5, { color: muted });
-  kopY -= 9;
-  drawText(page, "Website: www.sttsp.ac.id", kopX, kopY, font, 7.5, { color: muted });
+  drawText(page, settings.header.title, kopX, kopY, boldFont, settings.header.titleFontSize, { color: headerTitleColor, maxWidth: width - kopX - marginX });
+  kopY -= settings.header.lineGap;
+  settings.header.lines.forEach((line) => {
+    drawText(page, line, kopX, kopY, font, settings.header.bodyFontSize, { color: headerBodyColor, maxWidth: width - kopX - marginX });
+    kopY -= settings.header.lineGap;
+  });
+  const separatorY = Math.min(topY - 58, kopY - 3);
 
   page.drawLine({
-    start: { x: marginX, y: topY - 58 },
-    end: { x: width - marginX, y: topY - 58 },
+    start: { x: marginX, y: separatorY },
+    end: { x: width - marginX, y: separatorY },
     thickness: 0.8,
     color: rgb(0.16, 0.24, 0.32),
   });
 
-  let y = topY - 88;
-  drawText(page, "KARTU HASIL STUDI", marginX, y, boldFont, 12, { color: dark });
+  let y = separatorY - 30;
+  drawText(page, "KARTU HASIL STUDI", marginX, y, boldFont, 15, { color: dark });
   y -= 24;
   drawText(page, `Nama : ${payload.mahasiswa.nama || "-"}`, marginX, y, font, 9.5);
   drawText(page, `NIM : ${payload.mahasiswa.nim || "-"}`, marginX + 270, y, font, 9.5);
@@ -552,18 +709,26 @@ async function renderKhsPdf(payload) {
   }).format(new Date());
   const signatureX = width - 220;
   const signatureY = 104;
-  drawText(page, `Bandung, ${printedAt}`, signatureX, signatureY + 58, font, 9);
-  drawText(page, "Kepala Program Studi", signatureX, signatureY + 42, font, 9);
-  drawText(page, "Teologi S1", signatureX, signatureY + 28, font, 9);
-  drawText(page, "Dr. Samuel Pratama, M.Th.", signatureX, signatureY, boldFont, 9);
-  drawText(page, "NUPTK. 1234567890123456", signatureX, signatureY - 14, font, 8.5);
+  drawText(page, `${settings.signature.location}, ${settings.signature.datePrefix || printedAt}`, signatureX, signatureY + 58, font, settings.signature.fontSize, { color: signatureColor });
+  drawText(page, settings.signature.title, signatureX, signatureY + 42, font, settings.signature.fontSize, { color: signatureColor });
+  drawText(page, settings.signature.program, signatureX, signatureY + 28, font, settings.signature.fontSize, { color: signatureColor });
+  if (signatureImage) {
+    page.drawImage(signatureImage, {
+      x: signatureX + Number(settings.signature.image?.xOffset || 18),
+      y: signatureY + Number(settings.signature.image?.yOffset || 4),
+      width: Number(settings.signature.image?.width || 120),
+      height: Number(settings.signature.image?.height || 45),
+    });
+  }
+  drawText(page, settings.signature.name, signatureX, signatureY, boldFont, settings.signature.nameFontSize, { color: signatureColor });
+  drawText(page, `${settings.signature.identifierLabel}. ${settings.signature.identifier}`, signatureX, signatureY - 14, font, settings.signature.identifierFontSize, { color: signatureColor });
 
   return Buffer.from(await pdfDoc.save());
 }
 
 app.post("/api/cetak-khs", requireDatabase, requireAuth, async (req, res) => {
   try {
-    const pdfBuffer = await renderKhsPdf(req.body);
+    const pdfBuffer = await renderKhsPdf(req.body, await loadKhsPdfSettings());
     const nim = safeFilename(req.body?.mahasiswa?.nim);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename=KHS_${nim}.pdf`);
