@@ -100,7 +100,7 @@ function createEmptyData() {
     notifications: [],
     audit: [],
     integrations: [],
-    khsForms: defaultKhsForms(),
+    khsForms: [],
     khsFormSubmissions: [],
     settings: {
       letterheadDataUrl: "",
@@ -152,7 +152,7 @@ let state = {
   },
   gradeStudentId: "",
   editGradeEntryId: null,
-  gradeCohortFilter: "all",
+  gradeCohortFilter: "",
   khsEditMode: false,
   khsPdfSettings: null,
   khsPdfSettingsLoading: false,
@@ -257,8 +257,7 @@ function normalizeData(source) {
   normalized.notifications ||= [];
   normalized.audit ||= [];
   normalized.integrations ||= [];
-  const defaultForms = defaultKhsForms();
-  normalized.khsForms = [...(normalized.khsForms || []), ...defaultForms]
+  normalized.khsForms = (normalized.khsForms || [])
     .filter((form, index, forms) => form?.id && forms.findIndex((item) => item.id === form.id) === index)
     .map((form) => ({
       ...form,
@@ -348,6 +347,10 @@ function cohortOptions(selected = "all", includeAll = true) {
   return `${allOption}${studentCohorts()
     .map((cohort) => `<option value="${escapeHtml(cohort)}" ${String(selected) === cohort ? "selected" : ""}>Angkatan ${escapeHtml(cohort)}</option>`)
     .join("")}`;
+}
+
+function khsCohortOptions(selected = "") {
+  return `<option value="" ${!selected ? "selected" : ""}>Silakan pilih angkatan</option>${cohortOptions(selected, false)}`;
 }
 
 function groupStudentsByCohort(students) {
@@ -1318,9 +1321,10 @@ function khsRowsForStudent(studentId) {
   return gradeRowsForStudent(studentId).filter((row) => !courseCodes.size || courseCodes.has(row.code));
 }
 
-function studentGradeOptions(selected = "", cohort = "all") {
+function studentGradeOptions(selected = "", cohort = "all", emptyLabel = "Tidak ada mahasiswa pada angkatan ini") {
+  if (!cohort) return `<option value="">Mahasiswa</option>`;
   const students = studentsForCohort(cohort);
-  if (!students.length) return `<option value="">Tidak ada mahasiswa pada angkatan ini</option>`;
+  if (!students.length) return `<option value="">${escapeHtml(emptyLabel)}</option>`;
   return students
     .map(
       (student) =>
@@ -1344,7 +1348,7 @@ function khsPrintStatus(studentId) {
     requiredForms,
     completedFormIds,
     missingForms: requiredForms.filter((form) => !completedFormIds.includes(form.id)),
-    unlocked: requiredForms.length > 0 && completedFormIds.length === requiredForms.length,
+    unlocked: requiredForms.length === 0 || completedFormIds.length === requiredForms.length,
   };
 }
 
@@ -1577,9 +1581,9 @@ function renderGrades() {
   }
 
   if (["staff", "admin"].includes(user.role)) {
-    const gradeCohort = state.gradeCohortFilter || "all";
-    const gradeStudents = studentsForCohort(gradeCohort);
-    const selectedStudentId = gradeStudents.some((student) => student.id === state.gradeStudentId) ? state.gradeStudentId : gradeStudents[0]?.id || "";
+    const gradeCohort = state.gradeCohortFilter || "";
+    const gradeStudents = gradeCohort ? studentsForCohort(gradeCohort) : [];
+    const selectedStudentId = gradeStudents.some((student) => student.id === state.gradeStudentId) ? state.gradeStudentId : "";
     if (state.gradeStudentId !== selectedStudentId) state.gradeStudentId = selectedStudentId;
     const selectedStudent = userById(selectedStudentId);
     const rows = khsRowsForStudent(selectedStudentId)
@@ -1608,7 +1612,7 @@ function renderGrades() {
           <div class="panel-header">
             <div>
               <h3>KHS ${escapeHtml(selectedStudent?.name || "Mahasiswa")}</h3>
-              <p class="muted">Nilai yang ditampilkan hanya milik mahasiswa yang dipilih.</p>
+              <p class="muted">${gradeCohort ? "Nilai yang ditampilkan hanya milik mahasiswa yang dipilih." : "Silakan pilih angkatan terlebih dahulu untuk menampilkan data KHS."}</p>
             </div>
             <button class="subtle-button ${state.khsEditMode ? "is-active" : ""}" type="button" data-action="toggle-khs-edit-mode">
               <i data-lucide="${state.khsEditMode ? "check" : "pencil"}"></i>${state.khsEditMode ? "SELESAI" : "EDIT"}
@@ -1617,7 +1621,7 @@ function renderGrades() {
           <div class="toolbar compact-toolbar">
             <div class="filters">
               <label>Angkatan<select name="gradeCohort" data-action="grade-cohort-filter">
-                ${cohortOptions(gradeCohort)}
+                ${khsCohortOptions(gradeCohort)}
               </select></label>
               <label>Mahasiswa<select name="gradeStudentId" data-action="grade-view-student-filter">
                 ${studentGradeOptions(selectedStudentId, gradeCohort)}
@@ -1658,7 +1662,7 @@ function renderGrades() {
                       `,
                       )
                       .join("")
-                  : `<tr><td colspan="8">Belum ada data nilai untuk ${escapeHtml(selectedStudent?.name || "mahasiswa ini")}.</td></tr>`
+                  : `<tr><td colspan="8">${gradeCohort ? `Belum ada data nilai untuk ${escapeHtml(selectedStudent?.name || "mahasiswa ini")}.` : "Silakan pilih angkatan untuk menampilkan data KHS."}</td></tr>`
               }
             </tbody>
           </table>

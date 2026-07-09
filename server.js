@@ -510,7 +510,7 @@ function khsPrintStatus(appData, studentId, semester = CURRENT_ACTIVE_SEMESTER) 
     requiredForms,
     completedFormIds,
     missingForms: requiredForms.filter((form) => !completedFormIds.includes(form.id)),
-    unlocked: requiredForms.length > 0 && completedFormIds.length === requiredForms.length,
+    unlocked: requiredForms.length === 0 || completedFormIds.length === requiredForms.length,
   };
 }
 
