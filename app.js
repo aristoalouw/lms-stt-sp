@@ -2386,7 +2386,7 @@ function handleForm(formName, form) {
       id: studentId,
       name: form.get("name"),
       username: form.get("username"),
-      email: `${form.get("username")}@student.univ.ac.id`,
+      email: `${form.get("username")}@sttsaintpaul.ac.id`,
       role: "student",
       status: "active",
       identity: form.get("identity"),
