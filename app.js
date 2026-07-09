@@ -2359,7 +2359,7 @@ function handleForm(formName, form) {
       id: lecturerId,
       name: form.get("name"),
       username: form.get("username"),
-      email: `${form.get("username")}@univ.ac.id`,
+      email: `${form.get("username")}@saintpaul.ac.id`,
       role: "lecturer",
       status: "active",
       identity: form.get("identity"),
