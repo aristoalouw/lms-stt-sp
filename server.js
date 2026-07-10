@@ -667,7 +667,7 @@ const DEFAULT_KHS_PDF_SETTINGS = {
     lineGap: 9,
     logo: {
       x: 46,
-      yOffset: 68,
+      yOffset: 58,
       width: 68,
       height: 68,
     },
@@ -696,8 +696,8 @@ const DEFAULT_KHS_PDF_SETTINGS = {
     identifierFontSize: 8.5,
     color: "#000000",
     image: {
-      width: 190,
-      height: 78,
+      width: 230,
+      height: 95,
       xOffset: 0,
       yOffset: 4,
     },
@@ -830,7 +830,7 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
       width: Math.max(positiveNumber(settings.header.logo?.width, 68), 68),
       height: Math.max(positiveNumber(settings.header.logo?.height, 68), 68),
     };
-    const logoYOffset = Math.max(positiveNumber(settings.header.logo?.yOffset, 58), logoBox.height + 2);
+    const logoYOffset = Math.max(positiveNumber(settings.header.logo?.yOffset, 58) - 10, 42);
     const logoSize = fitImageToBox(logoImage, logoBox.width, logoBox.height);
     const logoY = topY - logoYOffset + (logoBox.height - logoSize.height) / 2;
     page.drawImage(logoImage, {
@@ -921,11 +921,14 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
   const signatureNameY = 82;
   const signatureImageGap = 18;
   const signatureMetaGap = 14;
+  const signatureNameWidth = boldFont.widthOfTextAtSize(settings.signature.name || "", settings.signature.nameFontSize);
+  const signatureBoxWidth = Math.max(positiveNumber(settings.signature.image?.width, 230), 230);
+  const signatureBoxHeight = Math.max(positiveNumber(settings.signature.image?.height, 95), 95);
   const signatureBox = {
-    x: signatureX + numberValue(settings.signature.image?.xOffset, 0),
+    x: signatureX + (signatureNameWidth - signatureBoxWidth) / 2 + numberValue(settings.signature.image?.xOffset, 0),
     y: signatureNameY + signatureImageGap + numberValue(settings.signature.image?.yOffset, 4),
-      width: Math.max(positiveNumber(settings.signature.image?.width, 190), 190),
-      height: Math.max(positiveNumber(settings.signature.image?.height, 78), 78),
+    width: signatureBoxWidth,
+    height: signatureBoxHeight,
   };
   const signatureMetaY = signatureBox.y + signatureBox.height + signatureMetaGap + 32;
   drawText(page, `${settings.signature.location}, ${settings.signature.datePrefix || printedAt}`, signatureX, signatureMetaY, font, settings.signature.fontSize, { color: signatureColor });
@@ -941,7 +944,7 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
     });
   }
   drawText(page, settings.signature.name, signatureX, signatureNameY, boldFont, settings.signature.nameFontSize, { color: signatureColor });
-  drawText(page, `${settings.signature.identifierLabel}. ${settings.signature.identifier}`, signatureX, signatureNameY - 14, font, settings.signature.identifierFontSize, { color: signatureColor });
+  drawText(page, `${settings.signature.identifierLabel}: ${settings.signature.identifier}`, signatureX, signatureNameY - 14, font, settings.signature.identifierFontSize, { color: signatureColor });
 
   return Buffer.from(await pdfDoc.save());
 }
