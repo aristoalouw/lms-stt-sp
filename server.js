@@ -667,9 +667,9 @@ const DEFAULT_KHS_PDF_SETTINGS = {
     lineGap: 9,
     logo: {
       x: 46,
-      yOffset: 48,
-      width: 42,
-      height: 42,
+      yOffset: 58,
+      width: 56,
+      height: 56,
     },
     lines: [
       "Terdaftar di Departemen Agama RI - Ijin Dirjen Bimas Kristen",
@@ -696,9 +696,9 @@ const DEFAULT_KHS_PDF_SETTINGS = {
     identifierFontSize: 8.5,
     color: "#000000",
     image: {
-      width: 120,
-      height: 45,
-      xOffset: 18,
+      width: 150,
+      height: 52,
+      xOffset: 0,
       yOffset: 4,
     },
   },
@@ -756,6 +756,26 @@ async function embedConfiguredImage(pdfDoc, dataUrl, fallbackPath) {
   return imageSource.mime.includes("jpeg") ? pdfDoc.embedJpg(imageSource.bytes) : pdfDoc.embedPng(imageSource.bytes);
 }
 
+function numberValue(value, fallback) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function positiveNumber(value, fallback) {
+  const numeric = numberValue(value, fallback);
+  return numeric > 0 ? numeric : fallback;
+}
+
+function fitImageToBox(image, maxWidth, maxHeight) {
+  const naturalWidth = positiveNumber(image?.width, maxWidth);
+  const naturalHeight = positiveNumber(image?.height, maxHeight);
+  const scale = Math.min(maxWidth / naturalWidth, maxHeight / naturalHeight);
+  return {
+    width: naturalWidth * scale,
+    height: naturalHeight * scale,
+  };
+}
+
 function normalizePdfSettings(input = {}) {
   const aliases = { ...input };
   aliases.assets = {
@@ -802,17 +822,26 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
   const headerTitleColor = parsePdfColor(settings.header.titleColor, dark);
   const headerBodyColor = parsePdfColor(settings.header.bodyColor, rgb(0.28, 0.32, 0.36));
   const signatureColor = parsePdfColor(settings.signature.color, rgb(0, 0, 0));
+  let kopX = marginX;
 
   if (logoImage) {
+    const logoBox = {
+      x: positiveNumber(settings.header.logo?.x, marginX),
+      width: Math.max(positiveNumber(settings.header.logo?.width, 56), 56),
+      height: Math.max(positiveNumber(settings.header.logo?.height, 56), 56),
+    };
+    const logoYOffset = Math.max(positiveNumber(settings.header.logo?.yOffset, 58), logoBox.height + 2);
+    const logoSize = fitImageToBox(logoImage, logoBox.width, logoBox.height);
+    const logoY = topY - logoYOffset + (logoBox.height - logoSize.height) / 2;
     page.drawImage(logoImage, {
-      x: Number(settings.header.logo?.x || marginX),
-      y: topY - Number(settings.header.logo?.yOffset || 48),
-      width: Number(settings.header.logo?.width || 42),
-      height: Number(settings.header.logo?.height || 42),
+      x: logoBox.x + (logoBox.width - logoSize.width) / 2,
+      y: logoY,
+      width: logoSize.width,
+      height: logoSize.height,
     });
+    kopX = logoBox.x + logoBox.width + 14;
   }
 
-  const kopX = marginX + 52;
   let kopY = topY - 3;
   drawText(page, settings.header.title, kopX, kopY, boldFont, settings.header.titleFontSize, { color: headerTitleColor, maxWidth: width - kopX - marginX });
   kopY -= settings.header.lineGap;
@@ -894,11 +923,18 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
   drawText(page, settings.signature.title, signatureX, signatureY + 42, font, settings.signature.fontSize, { color: signatureColor });
   drawText(page, settings.signature.program, signatureX, signatureY + 28, font, settings.signature.fontSize, { color: signatureColor });
   if (signatureImage) {
+    const signatureBox = {
+      x: signatureX + numberValue(settings.signature.image?.xOffset, 0),
+      y: signatureY + numberValue(settings.signature.image?.yOffset, 4),
+      width: Math.max(positiveNumber(settings.signature.image?.width, 150), 120),
+      height: Math.max(positiveNumber(settings.signature.image?.height, 52), 42),
+    };
+    const signatureSize = fitImageToBox(signatureImage, signatureBox.width, signatureBox.height);
     page.drawImage(signatureImage, {
-      x: signatureX + Number(settings.signature.image?.xOffset || 18),
-      y: signatureY + Number(settings.signature.image?.yOffset || 4),
-      width: Number(settings.signature.image?.width || 120),
-      height: Number(settings.signature.image?.height || 45),
+      x: signatureBox.x + (signatureBox.width - signatureSize.width) / 2,
+      y: signatureBox.y + (signatureBox.height - signatureSize.height) / 2,
+      width: signatureSize.width,
+      height: signatureSize.height,
     });
   }
   drawText(page, settings.signature.name, signatureX, signatureY, boldFont, settings.signature.nameFontSize, { color: signatureColor });
