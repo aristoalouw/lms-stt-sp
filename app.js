@@ -442,7 +442,7 @@ function courseCheckboxes(name, selectedIds = [], courses = data.courses) {
   return sortedSemesterLevels(groups)
     .map(
       (semesterLevel) => `
-      <details class="checkbox-group" open>
+      <details class="checkbox-group" data-course-group open>
         <summary>${escapeHtml(semesterLevel)} <span>${totalCredits(groups[semesterLevel])} SKS</span></summary>
         <div class="checkbox-list nested-checkbox-list">
           ${groups[semesterLevel]
@@ -459,7 +459,7 @@ function courseCheckboxes(name, selectedIds = [], courses = data.courses) {
       </details>
     `,
     )
-    .join("");
+    .join("") + `<div class="empty-state course-search-empty" hidden>Tidak ada mata kuliah yang cocok.</div>`;
 }
 
 function renderCourseDetails(courseLabels) {
@@ -3556,10 +3556,20 @@ document.addEventListener("input", (event) => {
   if (event.target.dataset.action === "course-checkbox-search") {
     const query = event.target.value.trim().toLowerCase();
     const container = event.target.closest(".field-group");
+    let visibleCount = 0;
     container?.querySelectorAll("[data-course-option]").forEach((option) => {
       const haystack = option.dataset.searchText || option.textContent.toLowerCase();
-      option.hidden = Boolean(query) && !haystack.includes(query);
+      const visible = !query || haystack.includes(query);
+      option.hidden = !visible;
+      if (visible) visibleCount += 1;
     });
+    container?.querySelectorAll("[data-course-group]").forEach((group) => {
+      const hasVisibleCourse = Boolean(group.querySelector("[data-course-option]:not([hidden])"));
+      group.hidden = Boolean(query) && !hasVisibleCourse;
+      if (query && hasVisibleCourse) group.open = true;
+    });
+    const empty = container?.querySelector(".course-search-empty");
+    if (empty) empty.hidden = !query || visibleCount > 0;
   }
 });
 

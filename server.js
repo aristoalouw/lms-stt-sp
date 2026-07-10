@@ -933,7 +933,7 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
     width: signatureBoxWidth,
     height: signatureBoxHeight,
   };
-  const signatureMetaY = signatureBox.y + signatureBox.height + signatureMetaGap + 32;
+  const signatureMetaY = signatureBox.y + signatureBox.height + signatureMetaGap + 8;
   drawText(page, `${settings.signature.location}, ${settings.signature.datePrefix || printedAt}`, signatureX, signatureMetaY, font, settings.signature.fontSize, { color: signatureColor });
   drawText(page, settings.signature.title, signatureX, signatureMetaY - signatureLineGap, font, settings.signature.fontSize, { color: signatureColor });
   drawText(page, settings.signature.program, signatureX, signatureMetaY - signatureLineGap * 2, font, settings.signature.fontSize, { color: signatureColor });
