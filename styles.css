@@ -92,9 +92,18 @@ button {
   flex: 0 0 auto;
   border-radius: 8px;
   color: #fff !important;
-  background: linear-gradient(135deg, var(--teal), #1e3a8a);
+  background: #fff;
   font-weight: 800;
   letter-spacing: 0;
+  overflow: hidden;
+  padding: 3px;
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
 }
 
 .login-panel {
