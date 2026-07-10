@@ -2072,7 +2072,7 @@ function renderKhsPdfSettings() {
           <label>Lebar logo<input name="headerLogoWidth" type="number" min="40" max="110" step="1" value="${numberInputValue(headerLogo.width, 68)}" required /></label>
           <label>Tinggi logo<input name="headerLogoHeight" type="number" min="40" max="110" step="1" value="${numberInputValue(headerLogo.height, 68)}" required /></label>
           <label>Posisi X logo<input name="headerLogoX" type="number" min="20" max="120" step="1" value="${numberInputValue(headerLogo.x, 46)}" required /></label>
-          <label>Turun logo<input name="headerLogoYOffset" type="number" min="35" max="120" step="1" value="${numberInputValue(headerLogo.yOffset, 58)}" required /></label>
+          <label>Turun logo<input name="headerLogoYOffset" type="number" min="35" max="120" step="1" value="${numberInputValue(headerLogo.yOffset, 64)}" required /></label>
         </div>
       </section>
 
