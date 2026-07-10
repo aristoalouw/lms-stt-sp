@@ -667,7 +667,7 @@ const DEFAULT_KHS_PDF_SETTINGS = {
     lineGap: 9,
     logo: {
       x: 46,
-      yOffset: 64,
+      yOffset: 66,
       width: 68,
       height: 68,
     },
@@ -696,10 +696,10 @@ const DEFAULT_KHS_PDF_SETTINGS = {
     identifierFontSize: 8.5,
     color: "#000000",
     image: {
-      width: 230,
-      height: 95,
+      width: 290,
+      height: 115,
       xOffset: 0,
-      yOffset: 4,
+      yOffset: 0,
     },
   },
   assets: {
@@ -823,6 +823,7 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
   const headerBodyColor = parsePdfColor(settings.header.bodyColor, rgb(0.28, 0.32, 0.36));
   const signatureColor = parsePdfColor(settings.signature.color, rgb(0, 0, 0));
   let kopX = marginX;
+  let logoBottomY = topY - 58;
 
   if (logoImage) {
     const logoBox = {
@@ -830,7 +831,7 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
       width: Math.max(positiveNumber(settings.header.logo?.width, 68), 68),
       height: Math.max(positiveNumber(settings.header.logo?.height, 68), 68),
     };
-    const logoYOffset = Math.max(positiveNumber(settings.header.logo?.yOffset, 64) - 3, 42);
+    const logoYOffset = Math.max(positiveNumber(settings.header.logo?.yOffset, 66), 42);
     const logoSize = fitImageToBox(logoImage, logoBox.width, logoBox.height);
     const logoY = topY - logoYOffset + (logoBox.height - logoSize.height) / 2;
     page.drawImage(logoImage, {
@@ -840,6 +841,7 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
       height: logoSize.height,
     });
     kopX = logoBox.x + logoBox.width + 14;
+    logoBottomY = logoY;
   }
 
   let kopY = topY - 3;
@@ -849,7 +851,7 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
     drawText(page, line, kopX, kopY, font, settings.header.bodyFontSize, { color: headerBodyColor, maxWidth: width - kopX - marginX });
     kopY -= settings.header.lineGap;
   });
-  const separatorY = Math.min(topY - 58, kopY - 3);
+  const separatorY = Math.min(topY - 58, kopY - 3, logoBottomY - 6);
 
   page.drawLine({
     start: { x: marginX, y: separatorY },
@@ -918,13 +920,13 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
     year: "numeric",
   }).format(new Date());
   const signatureX = width - 220;
-  const signatureNameY = 74;
-  const signatureImageGap = 18;
+  const signatureNameY = 78;
+  const signatureImageGap = 4;
   const signatureMetaGap = 8;
-  const signatureLineGap = 13;
+  const signatureLineGap = 12;
   const signatureNameWidth = boldFont.widthOfTextAtSize(settings.signature.name || "", settings.signature.nameFontSize);
-  const signatureBoxWidth = Math.max(positiveNumber(settings.signature.image?.width, 230), 230);
-  const signatureBoxHeight = Math.max(positiveNumber(settings.signature.image?.height, 95), 95);
+  const signatureBoxWidth = Math.max(positiveNumber(settings.signature.image?.width, 290), 290);
+  const signatureBoxHeight = Math.max(positiveNumber(settings.signature.image?.height, 115), 115);
   const signatureBox = {
     x: signatureX + (signatureNameWidth - signatureBoxWidth) / 2 + numberValue(settings.signature.image?.xOffset, 0),
     y: signatureNameY + signatureImageGap + numberValue(settings.signature.image?.yOffset, 4),

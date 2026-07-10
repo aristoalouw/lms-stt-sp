@@ -2072,7 +2072,7 @@ function renderKhsPdfSettings() {
           <label>Lebar logo<input name="headerLogoWidth" type="number" min="40" max="110" step="1" value="${numberInputValue(headerLogo.width, 68)}" required /></label>
           <label>Tinggi logo<input name="headerLogoHeight" type="number" min="40" max="110" step="1" value="${numberInputValue(headerLogo.height, 68)}" required /></label>
           <label>Posisi X logo<input name="headerLogoX" type="number" min="20" max="120" step="1" value="${numberInputValue(headerLogo.x, 46)}" required /></label>
-          <label>Turun logo<input name="headerLogoYOffset" type="number" min="35" max="120" step="1" value="${numberInputValue(headerLogo.yOffset, 64)}" required /></label>
+          <label>Turun logo<input name="headerLogoYOffset" type="number" min="35" max="120" step="1" value="${numberInputValue(headerLogo.yOffset, 66)}" required /></label>
         </div>
       </section>
 
@@ -2097,10 +2097,10 @@ function renderKhsPdfSettings() {
           <label>Ukuran font data<input name="signatureFontSize" type="number" min="6" max="18" step="0.5" value="${numberInputValue(signature.fontSize, 9.5)}" required /></label>
           <label>Ukuran font nama<input name="signatureNameFontSize" type="number" min="7" max="20" step="0.5" value="${numberInputValue(signature.nameFontSize, 10)}" required /></label>
           <label>Ukuran font identitas<input name="signatureIdentifierFontSize" type="number" min="6" max="18" step="0.5" value="${numberInputValue(signature.identifierFontSize, 9.5)}" required /></label>
-          <label>Lebar tanda tangan<input name="signatureImageWidth" type="number" min="120" max="340" step="1" value="${numberInputValue(signatureImage.width, 230)}" required /></label>
-          <label>Tinggi area tanda tangan<input name="signatureImageHeight" type="number" min="60" max="160" step="1" value="${numberInputValue(signatureImage.height, 95)}" required /></label>
+          <label>Lebar tanda tangan<input name="signatureImageWidth" type="number" min="160" max="440" step="1" value="${numberInputValue(signatureImage.width, 290)}" required /></label>
+          <label>Tinggi area tanda tangan<input name="signatureImageHeight" type="number" min="70" max="190" step="1" value="${numberInputValue(signatureImage.height, 115)}" required /></label>
           <label>Geser tanda tangan X<input name="signatureImageXOffset" type="number" min="-80" max="80" step="1" value="${numberInputValue(signatureImage.xOffset, 0)}" required /></label>
-          <label>Naik tanda tangan<input name="signatureImageYOffset" type="number" min="-20" max="60" step="1" value="${numberInputValue(signatureImage.yOffset, 4)}" required /></label>
+          <label>Naik tanda tangan<input name="signatureImageYOffset" type="number" min="-20" max="60" step="1" value="${numberInputValue(signatureImage.yOffset, 0)}" required /></label>
         </div>
       </section>
 
