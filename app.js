@@ -2039,7 +2039,9 @@ function renderKhsPdfSettings() {
 
   const settings = state.khsPdfSettings;
   const header = settings.header || {};
+  const headerLogo = header.logo || {};
   const signature = settings.signature || {};
+  const signatureImage = signature.image || {};
   const assets = settings.assets || {};
   const message = state.khsPdfSettingsMessage ? `<p class="form-success">${escapeHtml(state.khsPdfSettingsMessage)}</p>` : "";
 
@@ -2066,6 +2068,12 @@ function renderKhsPdfSettings() {
           <label>Warna isi<input name="headerBodyColor" type="color" value="${colorInputValue(header.bodyColor, "#47515c")}" /></label>
           <label>Jarak baris<input name="headerLineGap" type="number" min="6" max="18" step="0.5" value="${numberInputValue(header.lineGap, 9)}" required /></label>
         </div>
+        <div class="form-grid compact-grid">
+          <label>Lebar logo<input name="headerLogoWidth" type="number" min="40" max="110" step="1" value="${numberInputValue(headerLogo.width, 68)}" required /></label>
+          <label>Tinggi logo<input name="headerLogoHeight" type="number" min="40" max="110" step="1" value="${numberInputValue(headerLogo.height, 68)}" required /></label>
+          <label>Posisi X logo<input name="headerLogoX" type="number" min="20" max="120" step="1" value="${numberInputValue(headerLogo.x, 46)}" required /></label>
+          <label>Turun logo<input name="headerLogoYOffset" type="number" min="45" max="120" step="1" value="${numberInputValue(headerLogo.yOffset, 68)}" required /></label>
+        </div>
       </section>
 
       <section class="panel">
@@ -2089,6 +2097,10 @@ function renderKhsPdfSettings() {
           <label>Ukuran font data<input name="signatureFontSize" type="number" min="6" max="18" step="0.5" value="${numberInputValue(signature.fontSize, 9.5)}" required /></label>
           <label>Ukuran font nama<input name="signatureNameFontSize" type="number" min="7" max="20" step="0.5" value="${numberInputValue(signature.nameFontSize, 10)}" required /></label>
           <label>Ukuran font identitas<input name="signatureIdentifierFontSize" type="number" min="6" max="18" step="0.5" value="${numberInputValue(signature.identifierFontSize, 9.5)}" required /></label>
+          <label>Lebar tanda tangan<input name="signatureImageWidth" type="number" min="100" max="260" step="1" value="${numberInputValue(signatureImage.width, 190)}" required /></label>
+          <label>Tinggi area tanda tangan<input name="signatureImageHeight" type="number" min="45" max="120" step="1" value="${numberInputValue(signatureImage.height, 78)}" required /></label>
+          <label>Geser tanda tangan X<input name="signatureImageXOffset" type="number" min="-80" max="80" step="1" value="${numberInputValue(signatureImage.xOffset, 0)}" required /></label>
+          <label>Naik tanda tangan<input name="signatureImageYOffset" type="number" min="-20" max="60" step="1" value="${numberInputValue(signatureImage.yOffset, 4)}" required /></label>
         </div>
       </section>
 
@@ -2855,6 +2867,12 @@ async function handleKhsPdfSettingsSubmit(formElement) {
         bodyFontSize: Number(form.get("headerBodyFontSize")),
         bodyColor: form.get("headerBodyColor"),
         lineGap: Number(form.get("headerLineGap")),
+        logo: {
+          x: Number(form.get("headerLogoX")),
+          yOffset: Number(form.get("headerLogoYOffset")),
+          width: Number(form.get("headerLogoWidth")),
+          height: Number(form.get("headerLogoHeight")),
+        },
         lines: String(form.get("headerLines") || "")
           .split(/\r?\n/)
           .map((line) => line.trim())
@@ -2872,6 +2890,12 @@ async function handleKhsPdfSettingsSubmit(formElement) {
         fontSize: Number(form.get("signatureFontSize")),
         nameFontSize: Number(form.get("signatureNameFontSize")),
         identifierFontSize: Number(form.get("signatureIdentifierFontSize")),
+        image: {
+          width: Number(form.get("signatureImageWidth")),
+          height: Number(form.get("signatureImageHeight")),
+          xOffset: Number(form.get("signatureImageXOffset")),
+          yOffset: Number(form.get("signatureImageYOffset")),
+        },
       },
       assets,
     };

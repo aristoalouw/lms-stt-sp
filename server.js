@@ -667,9 +667,9 @@ const DEFAULT_KHS_PDF_SETTINGS = {
     lineGap: 9,
     logo: {
       x: 46,
-      yOffset: 58,
-      width: 56,
-      height: 56,
+      yOffset: 68,
+      width: 68,
+      height: 68,
     },
     lines: [
       "Terdaftar di Departemen Agama RI - Ijin Dirjen Bimas Kristen",
@@ -696,8 +696,8 @@ const DEFAULT_KHS_PDF_SETTINGS = {
     identifierFontSize: 8.5,
     color: "#000000",
     image: {
-      width: 150,
-      height: 52,
+      width: 190,
+      height: 78,
       xOffset: 0,
       yOffset: 4,
     },
@@ -827,8 +827,8 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
   if (logoImage) {
     const logoBox = {
       x: positiveNumber(settings.header.logo?.x, marginX),
-      width: Math.max(positiveNumber(settings.header.logo?.width, 56), 56),
-      height: Math.max(positiveNumber(settings.header.logo?.height, 56), 56),
+      width: Math.max(positiveNumber(settings.header.logo?.width, 68), 68),
+      height: Math.max(positiveNumber(settings.header.logo?.height, 68), 68),
     };
     const logoYOffset = Math.max(positiveNumber(settings.header.logo?.yOffset, 58), logoBox.height + 2);
     const logoSize = fitImageToBox(logoImage, logoBox.width, logoBox.height);
@@ -918,17 +918,20 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
     year: "numeric",
   }).format(new Date());
   const signatureX = width - 220;
-  const signatureY = 104;
-  drawText(page, `${settings.signature.location}, ${settings.signature.datePrefix || printedAt}`, signatureX, signatureY + 58, font, settings.signature.fontSize, { color: signatureColor });
-  drawText(page, settings.signature.title, signatureX, signatureY + 42, font, settings.signature.fontSize, { color: signatureColor });
-  drawText(page, settings.signature.program, signatureX, signatureY + 28, font, settings.signature.fontSize, { color: signatureColor });
+  const signatureNameY = 82;
+  const signatureImageGap = 18;
+  const signatureMetaGap = 14;
+  const signatureBox = {
+    x: signatureX + numberValue(settings.signature.image?.xOffset, 0),
+    y: signatureNameY + signatureImageGap + numberValue(settings.signature.image?.yOffset, 4),
+      width: Math.max(positiveNumber(settings.signature.image?.width, 190), 190),
+      height: Math.max(positiveNumber(settings.signature.image?.height, 78), 78),
+  };
+  const signatureMetaY = signatureBox.y + signatureBox.height + signatureMetaGap + 32;
+  drawText(page, `${settings.signature.location}, ${settings.signature.datePrefix || printedAt}`, signatureX, signatureMetaY, font, settings.signature.fontSize, { color: signatureColor });
+  drawText(page, settings.signature.title, signatureX, signatureMetaY - 16, font, settings.signature.fontSize, { color: signatureColor });
+  drawText(page, settings.signature.program, signatureX, signatureMetaY - 32, font, settings.signature.fontSize, { color: signatureColor });
   if (signatureImage) {
-    const signatureBox = {
-      x: signatureX + numberValue(settings.signature.image?.xOffset, 0),
-      y: signatureY + numberValue(settings.signature.image?.yOffset, 4),
-      width: Math.max(positiveNumber(settings.signature.image?.width, 150), 120),
-      height: Math.max(positiveNumber(settings.signature.image?.height, 52), 42),
-    };
     const signatureSize = fitImageToBox(signatureImage, signatureBox.width, signatureBox.height);
     page.drawImage(signatureImage, {
       x: signatureBox.x + (signatureBox.width - signatureSize.width) / 2,
@@ -937,8 +940,8 @@ async function renderKhsPdf(payload, pdfSettings = DEFAULT_KHS_PDF_SETTINGS) {
       height: signatureSize.height,
     });
   }
-  drawText(page, settings.signature.name, signatureX, signatureY, boldFont, settings.signature.nameFontSize, { color: signatureColor });
-  drawText(page, `${settings.signature.identifierLabel}. ${settings.signature.identifier}`, signatureX, signatureY - 14, font, settings.signature.identifierFontSize, { color: signatureColor });
+  drawText(page, settings.signature.name, signatureX, signatureNameY, boldFont, settings.signature.nameFontSize, { color: signatureColor });
+  drawText(page, `${settings.signature.identifierLabel}. ${settings.signature.identifier}`, signatureX, signatureNameY - 14, font, settings.signature.identifierFontSize, { color: signatureColor });
 
   return Buffer.from(await pdfDoc.save());
 }
