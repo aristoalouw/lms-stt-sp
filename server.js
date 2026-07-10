@@ -412,6 +412,45 @@ app.get("/api/auth/me", requireDatabase, requireAuth, (req, res) => {
   res.json({ user: sanitizeUser(req.user) });
 });
 
+function userForUpdate(user) {
+  const safe = sanitizeUser(user);
+  safe.passwordHash = user.passwordHash;
+  return safe;
+}
+
+function isValidProfilePhoto(value) {
+  if (value === "") return true;
+  return /^data:image\/(png|jpe?g|webp);base64,[a-zA-Z0-9+/=]+$/.test(String(value || ""));
+}
+
+app.post("/api/profile", requireDatabase, requireAuth, async (req, res) => {
+  const profilePhotoDataUrl = String(req.body?.profilePhotoDataUrl ?? "");
+  if (!isValidProfilePhoto(profilePhotoDataUrl)) return res.status(400).json({ message: "Format foto profil tidak valid." });
+  if (profilePhotoDataUrl.length > 1024 * 1024 * 3) return res.status(400).json({ message: "Ukuran foto profil terlalu besar." });
+  const nextUser = {
+    ...userForUpdate(req.user),
+    profilePhotoDataUrl,
+    profileUpdatedAt: new Date().toISOString(),
+  };
+  await upsertUser(nextUser);
+  res.json({ ok: true, user: sanitizeUser(nextUser), data: await loadAppData() });
+});
+
+app.post("/api/profile/password", requireDatabase, requireAuth, async (req, res) => {
+  const currentPassword = String(req.body?.currentPassword || "");
+  const newPassword = String(req.body?.newPassword || "");
+  if (newPassword.length < 8) return res.status(400).json({ message: "Password baru minimal 8 karakter." });
+  if (!(await bcrypt.compare(currentPassword, req.user.passwordHash))) return res.status(401).json({ message: "Password saat ini tidak sesuai." });
+  const nextUser = {
+    ...userForUpdate(req.user),
+    passwordHash: await bcrypt.hash(newPassword, 12),
+    passwordUpdatedAt: new Date().toISOString(),
+    passwordUpdatedBy: "self",
+  };
+  await upsertUser(nextUser);
+  res.json({ ok: true, user: sanitizeUser(nextUser), data: await loadAppData() });
+});
+
 app.get("/api/data", requireDatabase, requireAuth, async (_req, res) => {
   res.json(await loadAppData());
 });

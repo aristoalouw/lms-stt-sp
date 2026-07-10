@@ -118,6 +118,7 @@ function createEmptyData() {
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: "layout-dashboard", roles: ["student", "lecturer", "staff", "admin"] },
+  { id: "profile", label: "Profil Saya", icon: "user-round-cog", roles: ["student", "lecturer", "staff", "admin"], hidden: true },
   { id: "grades", label: "KHS", icon: "badge-check", roles: ["student", "lecturer", "staff", "admin"] },
   { id: "announcements", label: "Pengumuman", icon: "megaphone", roles: ["student", "lecturer", "staff", "admin"] },
   { id: "calendar", label: "Kalender Akademik", icon: "calendar-days", roles: ["student", "lecturer", "staff", "admin"] },
@@ -170,6 +171,8 @@ let state = {
   khsQuestionEditorCount: 6,
   khsFormCohortFilter: "all",
   khsFormStudentFilter: "all",
+  profileMessage: "",
+  profileError: "",
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -500,6 +503,12 @@ function renderCourseDetailsGrouped(courses) {
   `;
 }
 
+function renderPasswordAdminStatus(user) {
+  const updatedAt = user.passwordUpdatedAt ? formatDateTime(user.passwordUpdatedAt) : "Belum tercatat";
+  const source = user.passwordUpdatedBy === "self" ? "Diubah pengguna" : user.passwordUpdatedBy === "admin" ? "Diatur admin" : "Awal sistem";
+  return `<span>${escapeHtml(source)}</span><br /><span class="muted">${escapeHtml(updatedAt)}</span>`;
+}
+
 function groupCoursesBySemesterLevel(courses) {
   return courses.reduce((groups, course) => {
     const semester = course.semesterLevel || "Semester 1";
@@ -627,6 +636,11 @@ function statusTag(status) {
   return `<span class="tag ${tone}">${escapeHtml(status)}</span>`;
 }
 
+function renderAvatar(user, className = "avatar") {
+  if (user?.profilePhotoDataUrl) return `<span class="${className}"><img src="${escapeHtml(user.profilePhotoDataUrl)}" alt="Foto profil ${escapeHtml(user.name || "")}" /></span>`;
+  return `<span class="${className}">${escapeHtml((user?.name || "US").slice(0, 2).toUpperCase())}</span>`;
+}
+
 function showLogin() {
   $("#loginScreen").classList.remove("hidden");
   $("#appShell").classList.add("hidden");
@@ -643,7 +657,12 @@ function showApp() {
   $("#appShell").classList.remove("hidden");
   $("#roleLabel").textContent = roleNames[user.role];
   $("#activeRoleText").textContent = `${roleNames[user.role]} aktif`;
-  $("#userChip").innerHTML = `<span class="avatar">${user.name.slice(0, 2).toUpperCase()}</span><strong>${escapeHtml(user.name)}</strong>`;
+  $("#userChip").innerHTML = `
+    <button class="user-profile-button" type="button" data-view="profile" title="Profil Saya">
+      ${renderAvatar(user)}
+      <strong>${escapeHtml(user.name)}</strong>
+    </button>
+  `;
   renderNav();
   renderNotifications();
   renderView();
@@ -654,6 +673,7 @@ function renderNav() {
   const available = navItems.filter((item) => item.roles.includes(user.role));
   if (!available.some((item) => item.id === state.activeView)) state.activeView = "dashboard";
   $("#sideNav").innerHTML = available
+    .filter((item) => !item.hidden)
     .map(
       (item) => `
       <button class="nav-link ${state.activeView === item.id ? "active" : ""}" type="button" data-view="${item.id}">
@@ -716,6 +736,7 @@ function renderView() {
   $("#pageTitle").textContent = item?.label || "Dashboard";
   const renderers = {
     dashboard: renderDashboard,
+    profile: renderProfile,
     courses: renderCourses,
     materials: renderMaterials,
     assignments: renderAssignments,
@@ -1812,6 +1833,50 @@ function renderAnnouncements() {
   `;
 }
 
+function renderProfile() {
+  const user = currentUser();
+  const changedAt = user.passwordUpdatedAt ? formatDateTime(user.passwordUpdatedAt) : "Belum tercatat";
+  const message = state.profileMessage ? `<p class="form-success">${escapeHtml(state.profileMessage)}</p>` : "";
+  const error = state.profileError ? `<p class="form-error">${escapeHtml(state.profileError)}</p>` : "";
+  return `
+    <section class="module-grid">
+      <form class="panel" data-form="profile-photo">
+        <div class="panel-header">
+          <div>
+            <h3>Foto profil</h3>
+            <p class="muted">Foto ini tampil pada tombol profil di kanan atas.</p>
+          </div>
+          ${renderAvatar(user, "avatar large-avatar")}
+        </div>
+        ${message}
+        ${error}
+        <label>Upload foto<input name="profilePhoto" type="file" accept="image/png,image/jpeg,image/webp" /></label>
+        <div class="form-actions">
+          <button class="primary-button" type="submit"><i data-lucide="image-up"></i>Simpan foto</button>
+          ${user.profilePhotoDataUrl ? `<button class="subtle-button" type="button" data-action="clear-profile-photo"><i data-lucide="eraser"></i>Hapus foto</button>` : ""}
+        </div>
+      </form>
+
+      <form class="panel" data-form="profile-password">
+        <div class="panel-header">
+          <div>
+            <h3>Ubah password</h3>
+            <p class="muted">Password baru dipakai pada login berikutnya.</p>
+          </div>
+        </div>
+        <label>Password saat ini<input name="currentPassword" type="password" autocomplete="current-password" required /></label>
+        <label>Password baru<input name="newPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+        <label>Konfirmasi password baru<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+        <div class="item-card">
+          <div class="item-row"><strong>Status password</strong>${statusTag(user.passwordUpdatedAt ? "Diperbarui" : "Aktif")}</div>
+          <p class="muted">Terakhir diperbarui: ${escapeHtml(changedAt)}</p>
+        </div>
+        <button class="primary-button" type="submit"><i data-lucide="key-round"></i>Simpan password</button>
+      </form>
+    </section>
+  `;
+}
+
 function renderCalendar() {
   const user = currentUser();
   const canManage = ["staff", "admin"].includes(user.role);
@@ -2482,7 +2547,7 @@ function renderAcademic() {
               ${academicEditButton("lecturers")}
             </div>
             <table class="data-table">
-              <thead><tr><th>Nama</th><th>NIDN/NUPTK</th><th>Username</th><th>Mata kuliah diampu</th><th>Aksi</th></tr></thead>
+              <thead><tr><th>Nama</th><th>NIDN/NUPTK</th><th>Username</th><th>Password</th><th>Mata kuliah diampu</th><th>Aksi</th></tr></thead>
               <tbody>
                 ${lecturers
                   .map((lecturer) => {
@@ -2492,6 +2557,7 @@ function renderAcademic() {
                         <td>${escapeHtml(lecturer.name)}</td>
                         <td>${escapeHtml(lecturer.identity)}</td>
                         <td>${escapeHtml(lecturer.username)}</td>
+                        <td>${renderPasswordAdminStatus(lecturer)}</td>
                         <td>${renderCourseDetailsGrouped(lecturerCourses)}</td>
                         <td>
                           ${academicActionCell(
@@ -2558,13 +2624,13 @@ function renderAcademic() {
               </div>
             </div>
             <table class="data-table">
-              <thead><tr><th>Nama</th><th>NIM</th><th>Username</th><th>Prodi</th><th>Tahun Angkatan</th><th>Semester berjalan</th><th>Mata kuliah</th><th>Aksi</th></tr></thead>
+              <thead><tr><th>Nama</th><th>NIM</th><th>Username</th><th>Password</th><th>Prodi</th><th>Tahun Angkatan</th><th>Semester berjalan</th><th>Mata kuliah</th><th>Aksi</th></tr></thead>
               <tbody>
                 ${Object.keys(studentGroups)
                   .sort((a, b) => Number(b) - Number(a))
                   .map(
                     (cohort) => `
-                      <tr class="group-row"><td colspan="8">Angkatan ${escapeHtml(cohort)}</td></tr>
+                      <tr class="group-row"><td colspan="9">Angkatan ${escapeHtml(cohort)}</td></tr>
                       ${studentGroups[cohort]
                         .map((student) => {
                           const courseLabels = visibleCourses.filter((course) => course.studentIds.includes(student.id)).map(courseFullLabel);
@@ -2573,6 +2639,7 @@ function renderAcademic() {
                               <td>${escapeHtml(student.name)}</td>
                               <td>${escapeHtml(student.identity)}</td>
                               <td>${escapeHtml(student.username)}</td>
+                              <td>${renderPasswordAdminStatus(student)}</td>
                               <td>${escapeHtml(student.program || "Teologi S1")}</td>
                               <td>${escapeHtml(studentCohort(student))}</td>
                               <td>${escapeHtml(student.currentSemester || "-")}</td>
@@ -2919,6 +2986,50 @@ async function handleKhsPdfSettingsSubmit(formElement) {
   }
 }
 
+async function handleProfilePhotoSubmit(formElement) {
+  const file = formElement.querySelector('input[name="profilePhoto"]')?.files?.[0];
+  state.profileMessage = "";
+  state.profileError = "";
+  try {
+    let profilePhotoDataUrl = currentUser()?.profilePhotoDataUrl || "";
+    if (file) {
+      const allowed = ["image/png", "image/jpeg", "image/webp"];
+      if (!allowed.includes(file.type)) throw new Error("Format foto harus PNG, JPG, atau WebP.");
+      if (file.size > 1024 * 1024 * 2) throw new Error("Ukuran foto maksimal 2 MB.");
+      profilePhotoDataUrl = await fileToDataUrl(file);
+    }
+    const result = await apiRequest("/api/profile", { method: "POST", body: JSON.stringify({ profilePhotoDataUrl }) });
+    data = normalizeData(result.data);
+    state.currentUserId = result.user.id;
+    state.profileMessage = "Foto profil berhasil disimpan.";
+    showApp();
+  } catch (error) {
+    state.profileError = error.message || "Foto profil gagal disimpan.";
+    renderView();
+  }
+}
+
+async function handleProfilePasswordSubmit(formElement) {
+  const form = new FormData(formElement);
+  const currentPassword = String(form.get("currentPassword") || "");
+  const newPassword = String(form.get("newPassword") || "");
+  const confirmPassword = String(form.get("confirmPassword") || "");
+  state.profileMessage = "";
+  state.profileError = "";
+  try {
+    if (newPassword !== confirmPassword) throw new Error("Konfirmasi password baru tidak sama.");
+    const result = await apiRequest("/api/profile/password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) });
+    data = normalizeData(result.data);
+    state.currentUserId = result.user.id;
+    state.profileMessage = "Password berhasil diperbarui.";
+    formElement.reset();
+    showApp();
+  } catch (error) {
+    state.profileError = error.message || "Password gagal diperbarui.";
+    renderView();
+  }
+}
+
 async function downloadKhsFormResponsesPdf(actionButton) {
   const originalHtml = actionButton?.innerHTML || "";
   try {
@@ -3077,6 +3188,14 @@ document.addEventListener("submit", async (event) => {
   }
   if (formName === "khs-pdf-settings") {
     await handleKhsPdfSettingsSubmit(event.target);
+    return;
+  }
+  if (formName === "profile-photo") {
+    await handleProfilePhotoSubmit(event.target);
+    return;
+  }
+  if (formName === "profile-password") {
+    await handleProfilePasswordSubmit(event.target);
     return;
   }
   const form = new FormData(event.target);
@@ -3357,8 +3476,15 @@ function handleForm(formName, form) {
       program: "Belum diatur",
       faculty: "Belum diatur",
     };
-    if (form.get("password")) payload.password = form.get("password");
     const existing = data.users.find((item) => item.id === lecturerId);
+    if (form.get("password")) {
+      payload.password = form.get("password");
+      payload.passwordUpdatedAt = new Date().toISOString();
+      payload.passwordUpdatedBy = "admin";
+    } else if (!existing) {
+      payload.passwordUpdatedAt = new Date().toISOString();
+      payload.passwordUpdatedBy = "admin";
+    }
     if (existing) Object.assign(existing, payload);
     else data.users.push(payload);
     data.courses.forEach((course) => {
@@ -3387,8 +3513,15 @@ function handleForm(formName, form) {
       currentSemester,
       enrolledCourseIds: courseIds,
     };
-    if (form.get("password")) payload.password = form.get("password");
     const existing = data.users.find((item) => item.id === studentId);
+    if (form.get("password")) {
+      payload.password = form.get("password");
+      payload.passwordUpdatedAt = new Date().toISOString();
+      payload.passwordUpdatedBy = "admin";
+    } else if (!existing) {
+      payload.passwordUpdatedAt = new Date().toISOString();
+      payload.passwordUpdatedBy = "admin";
+    }
     if (existing) Object.assign(existing, payload);
     else data.users.push(payload);
     data.courses.forEach((course) => {
@@ -3579,6 +3712,23 @@ function handleAction(action, id, actionButton) {
     state.khsEditMode = !state.khsEditMode;
     if (!state.khsEditMode) state.editGradeEntryId = null;
     renderView();
+    return;
+  }
+
+  if (action === "clear-profile-photo") {
+    state.profileMessage = "";
+    state.profileError = "";
+    apiRequest("/api/profile", { method: "POST", body: JSON.stringify({ profilePhotoDataUrl: "" }) })
+      .then((result) => {
+        data = normalizeData(result.data);
+        state.currentUserId = result.user.id;
+        state.profileMessage = "Foto profil berhasil dihapus.";
+        showApp();
+      })
+      .catch((error) => {
+        state.profileError = error.message || "Foto profil gagal dihapus.";
+        renderView();
+      });
     return;
   }
 
